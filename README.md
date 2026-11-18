@@ -1,4 +1,4 @@
-# ti8m-demo
+# test-automation-demo
 
 A test automation demo for anyone who reviews how API tests are derived from business rules: a small money-transfer service as the system under test, API tests chosen from its rules with black-box test techniques, and CI that runs them against the service in a container on every change.
 
@@ -15,8 +15,8 @@ Requires Git 2 or later, Docker 24 or later with Docker Compose v2, and Python 3
 Get the repository and start the service in a container. The command returns once the service answers its health check:
 
 ```bash
-git clone https://github.com/tiavelum/ti8m-demo.git
-cd ti8m-demo
+git clone https://github.com/tiavelum/test-automation-demo.git
+cd test-automation-demo
 docker compose up --build --detach --wait
 ```
 
