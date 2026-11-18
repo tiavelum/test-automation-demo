@@ -12,7 +12,7 @@ It is not a payment system: the service keeps its transfers in memory and has no
 
 Requires Git 2 or later, Docker 24 or later with Docker Compose v2, and Python 3.13 with pip.
 
-Get the repository and start the service in a container. The command returns once the service answers its health check:
+Get the repository and start the service in a container. The command returns once the service answers its health check. Without Docker, run the first two commands, then follow [Run the service without Docker](#run-the-service-without-docker) instead of the rest of this section, since the tests need a running service:
 
 ```bash
 git clone https://github.com/tiavelum/test-automation-demo.git
@@ -32,7 +32,7 @@ pytest
 The run ends with:
 
 ```
-============================== 44 passed in 0.32s ==============================
+============================== 46 passed in 0.32s ==============================
 ```
 
 ## Example
