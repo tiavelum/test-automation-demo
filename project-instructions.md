@@ -1,6 +1,6 @@
 Repository tiavelum/test-automation-demo.
 
-These are the rules for a Claude session that works on this public test automation demo: a money-transfer service as the system under test, API tests derived from its business rules with black-box test techniques, and CI that runs them against the service in a container.
+These are the rules for a Claude session that works on this public test automation demo: a money-transfer service as the system under test, API tests and UI tests in Playwright for Python, derived from its business rules with black-box test techniques, and CI that runs them against the service in a container.
 
 Public content: Never add personal data of the owner or of anyone else to a file, a commit, an issue or a pull request: no names, addresses, employers or details of job applications. The one exception is the owner's name in the copyright line of `LICENSE`, which WR-6 of tiavelum/engineering-standards asks for.
 
@@ -10,7 +10,7 @@ Small service: Keep the service in the single module `app/transfer_app.py`. A se
 
 Pinned dependencies: Pin a new dependency together with every transitive dependency it installs, in `app/requirements.txt` for the service and in `requirements-dev.txt` for the tests and the checks.
 
-Done: A change is ready when the following pass with the service running, and then the CI run on its pull request. Where Docker is not available, start the service with `python app/transfer_app.py` and report that only CI built and started the container.
+Done: A change is ready when the following pass with the service running, and then the CI run on its pull request. Where Docker is not available, start the service with `python app/transfer_app.py` and report that only CI built and started the container. Where Playwright cannot download its browsers, use an installed Chrome as README.md shows.
 
 ```bash
 ruff format --check .
