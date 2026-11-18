@@ -37,6 +37,7 @@ def test_valid_transition(api, transfer_in, start, event, target):
     response = api.post(f"/transfers/{transfer_id}/{event}")
     assert response.status_code == 200
     assert response.json()["status"] == target
+    assert api.get(f"/transfers/{transfer_id}").json()["status"] == target
 
 
 def test_refused_confirmation_leads_to_rejected(api, create):

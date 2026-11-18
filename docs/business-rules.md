@@ -13,7 +13,7 @@ The amount of a transfer is a number with at most two decimal places, from CHF 0
 | Invalid, too low | 0.00 and below | 422 |
 | Valid | 0.01 to 10000.00 | 201, status `created` |
 | Invalid, too high | 10000.01 and above | 422 |
-| Invalid, not an amount | more than two decimal places, not a number, `null` | 422 |
+| Invalid, not an amount | not a number, `null`, or more than two decimal places, whatever its size | 422 |
 
 ## R2: daily limit
 

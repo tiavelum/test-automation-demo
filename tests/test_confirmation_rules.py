@@ -40,3 +40,11 @@ def test_unknown_account_type_is_refused(create):
     response = create(account_type="business")
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["body", "account_type"]
+
+
+def test_confirmation_with_empty_object_gives_no_second_confirmation(api, create):
+    """R3, EP: a body without the key counts as "no second confirmation" (column D3)."""
+    transfer_id = create(amount="5000.01").json()["id"]
+    response = api.post(f"/transfers/{transfer_id}/confirm", json={})
+    assert response.status_code == 200
+    assert response.json()["status"] == "rejected"

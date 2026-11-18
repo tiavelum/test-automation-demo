@@ -69,3 +69,13 @@ def test_daily_limit_applies_per_account(create, account):
     for amount in ("10000.00", "10000.00"):
         assert create(amount=amount).status_code == 201
     assert create(amount="10000.00", account_id=f"{account}-other").status_code == 201
+
+
+def test_confirmed_and_executed_transfers_count(api, create):
+    """R2, EP: confirmed and executed transfers count towards the daily limit."""
+    for amount in ("10000.00", "10000.00"):
+        transfer_id = create(amount=amount).json()["id"]
+        body = {"second_confirmation": True}
+        api.post(f"/transfers/{transfer_id}/confirm", json=body).raise_for_status()
+    api.post(f"/transfers/{transfer_id}/execute").raise_for_status()
+    assert create(amount="0.01").status_code == 422

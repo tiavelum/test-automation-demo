@@ -1,6 +1,6 @@
 # ti8m-demo
 
-A test automation demo: a small money-transfer service as the system under test, API tests derived from its business rules with black-box test techniques, and CI that runs them against the service in a container on every change.
+A test automation demo for anyone who reviews how API tests are derived from business rules: a small money-transfer service as the system under test, API tests chosen from its rules with black-box test techniques, and CI that runs them against the service in a container on every change.
 
 ## What it is for
 
@@ -10,7 +10,7 @@ It is not a payment system: the service keeps its transfers in memory and has no
 
 ## Getting started
 
-Requires Git, Docker with Docker Compose v2, and Python 3.13 with pip.
+Requires Git 2 or later, Docker 24 or later with Docker Compose v2, and Python 3.13 with pip.
 
 Get the repository and start the service in a container. The command returns once the service answers its health check:
 
@@ -70,7 +70,14 @@ pip install -r requirements-dev.txt
 python app/transfer_app.py
 ```
 
-The service then prints `Uvicorn running on http://127.0.0.1:8000`. Run `pytest` in a second terminal, in the same virtual environment, and stop the service with Ctrl+C.
+The service then prints `Uvicorn running on http://127.0.0.1:8000`. In a second terminal, run the tests in the same virtual environment:
+
+```bash
+. .venv/bin/activate
+pytest
+```
+
+Stop the service with Ctrl+C.
 
 ## Stop the service in its container
 
@@ -116,7 +123,7 @@ The tests and the service read these variables from the environment; `.env.examp
 
 ## How it works
 
-The tests reach the service only over HTTP at `BASE_URL`, so the same tests run against the container that `compose.yaml` starts and against `app/transfer_app.py` started with Python. `compose.yaml` builds the image from `app/Dockerfile`, which installs `app/requirements.txt`, and reports the service healthy once `/health` answers. `requirements-dev.txt` includes `app/requirements.txt` and adds pytest, requests and ruff.
+The tests reach the service only over HTTP at `BASE_URL`, so the same tests run against the container that `compose.yaml` starts and against `app/transfer_app.py` started with Python.
 
 On every pull request and every push to `main`, `.github/workflows/ci.yml` runs two jobs. One checks formatting and lint with ruff. The other starts the service with `docker compose up --build --detach --wait`, runs `pytest` against it and keeps the JUnit report `api-tests.xml` and the service log as the workflow artifact `api-test-report`.
 
@@ -125,6 +132,7 @@ On every pull request and every push to `main`, `.github/workflows/ci.yml` runs 
 - The service loses every transfer when it stops, and the tests leave their transfers behind while it runs; each test uses an account of its own, so a repeated run still passes.
 - A transfer states its account type itself, since the service has no store of accounts.
 - The daily limit counts days in UTC, so a test run across midnight UTC can see a limit reset.
+- No test checks that a transfer of an earlier day stops counting towards the daily limit, because the service reads the clock itself.
 
 ## License
 
