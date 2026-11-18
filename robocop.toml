@@ -1,0 +1,16 @@
+# Formatter and linter configuration for the Robot Framework suites, required by TL-6 and TL-8.
+# The line length follows ruff.toml, so the Python and the Robot Framework files read alike.
+
+[tool.robocop]
+target_version = "7"
+
+[tool.robocop.lint]
+ignore = [
+  "DOC02",   # a test named for its case id of tests/README.md needs no documentation besides
+  "NAME01",  # the case ids of tests/README.md carry their amount, such as 0.01
+]
+configure = ["line-too-long.line_length=100"]
+
+[tool.robocop.format]
+space_count = 4
+line_length = 100
