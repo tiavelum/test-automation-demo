@@ -1,0 +1,12 @@
+services:
+  transfer-app:
+    build: app
+    ports:
+      - "8000:8000"
+    # `docker compose up --wait` returns once this check passes, so tests start only
+    # against a service that answers.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
