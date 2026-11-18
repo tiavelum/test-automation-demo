@@ -33,6 +33,12 @@ jobs:
       - name: Lint
         run: ruff check .
 
+      - name: Check formatting of the Robot Framework suites
+        run: robocop format --check --diff .
+
+      - name: Lint the Robot Framework suites
+        run: robocop check .
+
   api-tests:
     runs-on: ubuntu-24.04
     env:
@@ -82,14 +88,24 @@ jobs:
         with:
           python-version: "3.13.18"
 
+      # The Browser library drives Playwright from a Node.js process beside Robot Framework.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.23.4"
+
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
-      # Downloads the Chromium build of Playwright 1.64.1, the release requirements-dev.txt pins.
+      # Both tools download the Chromium build of Playwright 1.64.1: requirements-dev.txt pins
+      # playwright to it, and robotframework-browser 21.0.0 locks its Node.js packages to it.
       - name: Install the browser of Playwright for Python
         run: playwright install --with-deps chromium
 
+      - name: Install the Node.js packages of the Browser library and its browser
+        run: rfbrowser init chromium
+
       - name: Build and start the service
+        id: service
         run: docker compose up --build --detach --wait
 
       - name: Run the UI tests with Playwright
@@ -97,6 +113,11 @@ jobs:
           pytest tests/ui -v --junitxml=test-results/ui-tests-playwright.xml
           --tracing retain-on-failure --screenshot only-on-failure
           --output test-results/playwright
+
+      # Runs after failed Playwright tests too, so that a run keeps the reports of both suites.
+      - name: Run the UI tests with Robot Framework
+        if: ${{ !cancelled() && steps.service.outcome == 'success' }}
+        run: robot --outputdir test-results/robot tests/ui
 
       - name: Save the service log
         if: ${{ !cancelled() }}
