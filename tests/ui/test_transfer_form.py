@@ -1,7 +1,7 @@
-"""UI tests of the form page with Playwright for Python: R1, the amount range, through the form,
-with equivalence partitioning (EP) and boundary value analysis (BVA), and the transfer the form
-creates (R4). `transfer-form.robot` checks the same cases with the Robot Framework Browser
-library."""
+"""UI tests of the form page with Playwright for Python: R1, the amount range, and R2, the daily
+limit, through the form, with equivalence partitioning (EP) and boundary value analysis (BVA),
+and the transfer the form creates (R4). `transfer-form.robot` checks the same cases with the
+Robot Framework Browser library."""
 
 import re
 
@@ -17,8 +17,8 @@ def submit_transfer(page: Page, account: str, amount: str, account_type: str = "
     page.goto("/")
     page.get_by_label("Account", exact=True).fill(account)
     page.get_by_label("Account type").select_option(account_type)
-    page.get_by_label("Recipient").fill("CH-recipient")
-    page.get_by_label("Amount in CHF").fill(amount)
+    page.get_by_label("Recipient", exact=True).fill("CH-recipient")
+    page.get_by_label("Amount in CHF", exact=True).fill(amount)
     page.get_by_role("button", name="Create transfer").click()
 
 
@@ -50,10 +50,22 @@ def test_amount_in_invalid_partition_is_refused(page: Page, account, amount):
     expect(page.get_by_role("status")).to_have_text(REFUSED)
 
 
-def test_new_transfer_starts_in_created(page: Page, account):
-    """R4, ST: the transfer the form reports is the one the service holds, in its initial state
-    created, with the values entered."""
-    submit_transfer(page, account, "250.00", account_type="savings")
+@pytest.mark.parametrize("amount", [pytest.param("0.01", id="R2-BVA-above-limit-0.01")])
+def test_amount_above_daily_limit_is_refused(page: Page, account, amount):
+    """R2, BVA: the form shows the reason of the service, a string, not only a validation list."""
+    for earlier in ("10000.00", "10000.00"):
+        submit_transfer(page, account, earlier)
+        expect(page.get_by_role("status")).to_have_text(CREATED)
+    submit_transfer(page, account, amount)
+    expect(page.get_by_role("status")).to_have_text("Rejected: daily limit exceeded")
+
+
+@pytest.mark.parametrize("amount", [pytest.param("250.00", id="R4-ST-new-transfer-starts-created")])
+def test_new_transfer_starts_in_created(page: Page, account, amount):
+    """R4, ST: the transition of a new transfer into its initial state created. The case is
+    also an integration check rather than a further state transition test: the transfer the
+    form reports is the one the service holds, with the values entered."""
+    submit_transfer(page, account, amount, account_type="savings")
     result = page.get_by_role("status")
     expect(result).to_have_text(CREATED)
     transfer_id = result.inner_text().split()[1]
@@ -63,4 +75,4 @@ def test_new_transfer_starts_in_created(page: Page, account):
     assert transfer["status"] == "created"
     assert transfer["account"] == account
     assert transfer["account_type"] == "savings"
-    assert transfer["amount"] == "250.00"
+    assert transfer["amount"] == amount

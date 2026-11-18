@@ -35,7 +35,7 @@ pytest
 The run ends with:
 
 ```
-============================== 53 passed in 3.17s ==============================
+============================== 54 passed in 4.22s ==============================
 ```
 
 ## Example
@@ -70,20 +70,20 @@ tests/test_confirmation_rules.py::test_confirmation_follows_decision_table[R3-DT
 pytest -v tests/ui
 ```
 
-With the service running, in its container or started as "Run the service without Docker" shows, this runs the seven UI cases with Playwright, one line each, such as:
+With the service running (in its container, or started as under "Run the service without Docker"), this runs the eight UI cases with Playwright, one line each, such as:
 
 ```
 tests/ui/test_transfer_form.py::test_amount_in_valid_partition_is_accepted[chromium-R1-BVA-lowest-valid-0.01] PASSED
 ```
 
-The Robot Framework suite needs Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. Install its Node.js packages and its browser once, then run the same seven cases:
+The Robot Framework suite needs Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. Install its Node.js packages and its browser once, then run the same eight cases:
 
 ```bash
 rfbrowser init chromium
 robot --outputdir test-results/robot tests/ui
 ```
 
-The run ends with `7 tests, 7 passed, 0 failed` and writes its log to `test-results/robot/log.html`. [tests/ui/README.md](tests/ui/README.md) maps each case and each keyword to its Playwright counterpart.
+The run ends with `8 tests, 8 passed, 0 failed` and writes its log to `test-results/robot/log.html`. [tests/ui/README.md](tests/ui/README.md) maps each case and each keyword to its Playwright counterpart.
 
 Where Playwright cannot download its browsers, run both suites in an installed Google Chrome instead:
 
@@ -169,7 +169,7 @@ On every pull request and every push to `main`, `.github/workflows/ci.yml` runs 
 - A transfer states its account type itself, since the service has no store of accounts.
 - The daily limit counts days in UTC, so a test run across midnight UTC can see a limit reset.
 - No test checks that a transfer of an earlier day stops counting towards the daily limit, because the service reads the clock itself.
-- The form page only creates transfers, so the UI tests cover rule R1 and the status of a new transfer; rule R2, rule R3 and the events of rule R4 are tested only through the API.
+- The form page has no confirm or execute step, so the UI tests cover rule R1, the refusal of rule R2 and the status of a new transfer; rule R3 and the events of rule R4 are tested only through the API.
 - The UI tests run in Chromium only.
 
 ## License
