@@ -4,10 +4,18 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+.robocop_cache/
 
 # Test output
 test-results/
 reports/
+# Robot Framework and its Browser library write these into the working directory without
+# --outputdir.
+/output.xml
+/log.html
+/report.html
+/playwright-log.txt
+/browser/
 
 # Local environment
 .env

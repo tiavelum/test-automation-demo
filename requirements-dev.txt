@@ -1,19 +1,46 @@
 # Everything needed to run the application, the API tests, the UI tests and the checks without
-# Docker, with every transitive dependency pinned (TL-14).
+# Docker, with every transitive dependency pinned (TL-14). playwright is pinned to the Playwright
+# release that robotframework-browser drives, so that both UI suites run the same engine.
 -r app/requirements.txt
 certifi==2026.10.23
 charset-normalizer==3.5.2
 greenlet==3.5.6
+grpcio==1.85.0
+grpcio-tools==1.85.0
 iniconfig==2.3.1
+Jinja2==3.1.6
+markdown-it-py==4.3.0
+MarkupSafe==3.0.4
+mdurl==0.1.2
+msgpack==1.2.4
+natsort==8.4.0
+overrides==7.7.0
 packaging==26.3
+pathspec==1.1.1
+platformdirs==4.14.7
 playwright==1.64.1
 pluggy==1.7.0
+protobuf==7.35.1
+psutil==7.2.2
 pyee==14.0.0
 Pygments==2.21.0
 pytest==9.2.0
 pytest-playwright==0.10.0
 python-slugify==9.2.0
+PyYAML==6.0.3
 requests==2.34.2
+rich==15.0.0
+robotframework==7.5.1
+robotframework-assertion-engine==5.0.1
+robotframework-browser==21.0.0
+robotframework-pythonlibcore==4.6.0
+robotframework-robocop==9.4.0
 ruff==0.17.5
+seedir==0.5.1
+setuptools==84.2.1
+shellingham==1.5.4
 text-unidecode==1.3
+tomli_w==1.2.0
+typer==0.29.2
 urllib3==2.8.0
+wrapt==2.5.2

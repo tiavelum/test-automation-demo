@@ -1,10 +1,12 @@
 # test-automation-demo
 
-A test automation demo for anyone who reviews how tests are derived from business rules: a small money-transfer service as the system under test, API tests chosen from its rules with black-box test techniques, UI tests of its form page in Playwright for Python, and CI that runs them against the service in a container on every change.
+A test automation demo for anyone who reviews how tests are derived from business rules: a small money-transfer service as the system under test, API tests chosen from its rules with black-box test techniques, UI tests of its form page in Playwright for Python and in the Robot Framework Browser library, and CI that runs them against the service in a container on every change.
 
 ## What it is for
 
 It shows two things a test suite needs: a test environment that anyone can rebuild with one command, and test cases that each trace back to a written rule and to the technique that selected them. The techniques are equivalence partitioning, boundary value analysis, decision table testing and state transition testing, from the black-box test techniques that the [ISTQB Certified Tester Foundation Level v4.0](https://istqb.org/certifications/certified-tester-foundation-level-ctfl-v4-0/) covers under test analysis and design.
+
+It also shows how a Robot Framework suite carries over to Playwright: both UI suites check the same cases under the same names.
 
 It is not a payment system: the service keeps its transfers in memory and has no accounts, no authentication and no persistence.
 
@@ -20,7 +22,7 @@ cd test-automation-demo
 docker compose up --build --detach --wait
 ```
 
-Install the test dependencies and the browser of Playwright, which on Debian and Ubuntu asks for your password to install the system libraries the browser needs, then run the API tests and the UI tests against the service at `http://localhost:8000`:
+Install the test dependencies and the browser of Playwright, which on Debian and Ubuntu asks for your password to install the system libraries the browser needs, then run the API tests and the Playwright UI tests against the service at `http://localhost:8000`:
 
 ```bash
 python3 -m venv .venv
@@ -62,7 +64,7 @@ Each test id starts with its rule and its technique, as [tests/README.md](tests/
 tests/test_confirmation_rules.py::test_confirmation_follows_decision_table[R3-DT-D5-savings-low-single] PASSED
 ```
 
-## Run the UI tests
+## Run the UI tests with Playwright and with Robot Framework
 
 ```bash
 pytest -v tests/ui
@@ -74,10 +76,21 @@ With the service running (in its container, or started as under "Run the service
 tests/ui/test_transfer_form.py::test_amount_in_valid_partition_is_accepted[chromium-R1-BVA-lowest-valid-0.01] PASSED
 ```
 
-[tests/ui/README.md](tests/ui/README.md) lists the cases. Where Playwright cannot download its browsers, run them in an installed Google Chrome instead:
+The Robot Framework suite needs Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. Install its Node.js packages and its browser once, then run the same eight cases:
 
 ```bash
+rfbrowser init chromium
+robot --outputdir test-results/robot tests/ui
+```
+
+The run ends with `8 tests, 8 passed, 0 failed` and writes its log to `test-results/robot/log.html`. [tests/ui/README.md](tests/ui/README.md) maps each case and each keyword to its Playwright counterpart.
+
+Where Playwright cannot download its browsers, run both suites in an installed Google Chrome instead:
+
+```bash
+rfbrowser init --skip-browsers
 pytest tests/ui --browser-channel chrome
+robot --outputdir test-results/robot --variable CHANNEL:chrome tests/ui
 ```
 
 ## Run the service without Docker
@@ -112,7 +125,10 @@ With the service running, run the checks that CI runs; each exits with status 0 
 ```bash
 ruff format --check .
 ruff check .
+robocop format --check .
+robocop check .
 pytest
+robot --outputdir test-results/robot tests/ui
 ```
 
 ## Content and structure
@@ -121,12 +137,12 @@ pytest
 |---|---|
 | `app/` | The service: `transfer_app.py`, the form page `transfer-form.html`, the `Dockerfile` of its image and its pinned `requirements.txt` |
 | `tests/` | The API tests and their fixtures; [tests/README.md](tests/README.md) maps each file to its rule and technique |
-| `tests/ui/` | The UI tests of the form page with Playwright for Python; [tests/ui/README.md](tests/ui/README.md) lists their cases |
+| `tests/ui/` | The UI tests of the form page, once with Playwright for Python and once with the Robot Framework Browser library; [tests/ui/README.md](tests/ui/README.md) pairs their cases |
 | `docs/` | `business-rules.md`, the rules R1 to R4 that the service implements and the tests are derived from |
 | `.github/workflows/` | `ci.yml`, the workflow of "How it works" |
 | `compose.yaml` | Builds the image from `app/` and starts it on port 8000 with a health check |
 | `requirements-dev.txt` | The pinned dependencies of the service, the tests and the checks, for a run without Docker |
-| `ruff.toml`, `.editorconfig`, `pytest.ini` | The configuration of the formatter and linter, of editors, and of pytest |
+| `ruff.toml`, `robocop.toml`, `.editorconfig`, `pytest.ini` | The configuration of the formatter and linter of the Python and of the Robot Framework files, of editors, and of pytest |
 | `.env.example` | The environment variables of "Configuration" |
 | `project-instructions.md`, `CLAUDE.md` | Rules for Claude sessions that work on this repository; `CLAUDE.md` imports the first |
 
@@ -144,9 +160,9 @@ The tests and the service read these variables from the environment; `.env.examp
 
 ## How it works
 
-The tests reach the service only over HTTP at `BASE_URL`, the API tests directly and the UI tests through a browser that opens the form page, so the same tests run against the container that `compose.yaml` starts and against `app/transfer_app.py` started with Python.
+The tests reach the service only over HTTP at `BASE_URL`, the API tests directly and the UI tests through a browser that opens the form page, so the same tests run against the container that `compose.yaml` starts and against `app/transfer_app.py` started with Python. Playwright for Python and the Browser library drive the same Playwright release, 1.64.1, which `requirements-dev.txt` pins for the first and the Browser library locks for its Node.js process.
 
-On every pull request and every push to `main`, `.github/workflows/ci.yml` runs three jobs. `lint` checks formatting and lint with ruff. `api-tests` starts the service with `docker compose up --build --detach --wait`, runs the API tests against it and keeps the JUnit report `api-tests.xml` and the service log for seven days as the workflow artifact `api-test-report`. `ui-tests` installs Chromium for Playwright, starts the service the same way, runs the UI tests and keeps their JUnit report, the traces and screenshots of failed tests and the service log for seven days as the artifact `ui-test-report`.
+On every pull request and every push to `main`, `.github/workflows/ci.yml` runs three jobs. `lint` checks formatting and lint with ruff and Robocop. `api-tests` starts the service with `docker compose up --build --detach --wait`, runs the API tests against it and keeps the JUnit report `api-tests.xml` and the service log for seven days as the workflow artifact `api-test-report`. `ui-tests` installs Chromium for each UI tool, starts the service the same way, runs the Playwright and then the Robot Framework suite, and keeps the JUnit report, the traces and screenshots of failed Playwright tests, the Robot Framework log and report and the service log for seven days as the artifact `ui-test-report`.
 
 ## Known limits
 
