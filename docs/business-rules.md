@@ -1,6 +1,6 @@
 # Business rules
 
-This document specifies the rules of the money-transfer service, for anyone who derives tests from them or changes the service; it is the test basis of the API tests in [tests/](../tests/README.md). Rule ids such as R1 are what the tests and the code cite.
+This document specifies the rules of the money-transfer service, for anyone who derives tests from them or changes the service; it is the test basis of the API tests in [tests/](../tests/README.md) and of the UI tests in [tests/ui/](../tests/ui/README.md). Rule ids such as R1 are what the tests and the code cite.
 
 A transfer moves an amount in CHF from an `account` of a type, `private` or `savings`, to a `recipient`. The service holds its transfers in memory, so they last until it stops. The paths, request bodies and responses of its API are generated from the code: start the service and open `/docs`.
 
