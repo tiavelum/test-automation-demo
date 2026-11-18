@@ -1,8 +1,8 @@
-Repository tiavelum/ti8m-demo.
+Repository tiavelum/test-automation-demo.
 
 These are the rules for a Claude session that works on this public test automation demo: a money-transfer service as the system under test, API tests derived from its business rules with black-box test techniques, and CI that runs them against the service in a container.
 
-Public content: Never add personal data of the owner or of anyone else to a file, a commit, an issue or a pull request: no names, addresses, employers or details of job applications.
+Public content: Never add personal data of the owner or of anyone else to a file, a commit, an issue or a pull request: no names, addresses, employers or details of job applications. The one exception is the owner's name in the copyright line of `LICENSE`, which WR-6 of tiavelum/engineering-standards asks for.
 
 Rules before tests: A change to what the service does changes `docs/business-rules.md` in the same pull request. Every new test names the rule and the technique it is derived from in its id or docstring, in the form `tests/README.md` describes, and uses an account of its own through the `account` fixture.
 
