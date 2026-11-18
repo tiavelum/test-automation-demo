@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>New transfer</title>
+</head>
+<body>
+  <h1>New transfer</h1>
+  <form id="transfer-form">
+    <label>Account <input name="account" required></label>
+    <label>Account type
+      <select name="account_type">
+        <option value="private">private</option>
+        <option value="savings">savings</option>
+      </select>
+    </label>
+    <label>Recipient <input name="recipient" required></label>
+    <label>Amount in CHF <input name="amount" required></label>
+    <button type="submit">Create transfer</button>
+  </form>
+  <p id="result" role="status"></p>
+  <script>
+    const form = document.getElementById("transfer-form");
+    const result = document.getElementById("result");
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const response = await fetch("/transfers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(new FormData(form))),
+      });
+      const body = await response.json();
+      if (response.ok) {
+        result.textContent = `Transfer ${body.id} created, status ${body.status}`;
+      } else {
+        const detail = Array.isArray(body.detail) ? body.detail[0].msg : body.detail;
+        result.textContent = `Rejected: ${detail}`;
+      }
+    });
+  </script>
+</body>
+</html>

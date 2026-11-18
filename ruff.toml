@@ -1,0 +1,24 @@
+# Formatter and linter configuration, required by TL-6 and TL-8.
+# Each selected rule family carries its reason.
+
+line-length = 100
+target-version = "py313"
+
+[format]
+quote-style = "double"
+indent-style = "space"
+
+[lint]
+select = [
+  "E",    # pycodestyle errors: the formatter cannot fix all of them
+  "W",    # pycodestyle warnings
+  "F",    # pyflakes: unused names, undefined names, shadowing
+  "I",    # import order, so the linter decides it
+  "N",    # naming conventions of Python
+  "UP",   # syntax superseded by the target version
+  "B",    # bugbear: likely mistakes rather than style
+  "SIM",  # constructs with a simpler equivalent
+  "PTH",  # pathlib over os.path
+  "PT",   # pytest style: parametrisation and fixtures in one form
+  "RUF",  # ruff's own checks
+]
