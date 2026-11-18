@@ -1,6 +1,7 @@
 """UI tests of the form page with Playwright for Python: R1, the amount range, and R2, the daily
 limit, through the form, with equivalence partitioning (EP) and boundary value analysis (BVA),
-and the transfer the form creates (R4)."""
+and the transfer the form creates (R4). `transfer-form.robot` checks the same cases with the
+Robot Framework Browser library."""
 
 import re
 

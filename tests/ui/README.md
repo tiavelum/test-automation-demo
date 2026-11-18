@@ -1,17 +1,18 @@
 # UI tests
 
-This directory holds the UI tests of the form page of the money-transfer service, for anyone who reads, runs or extends them: `test_transfer_form.py` checks eight cases through the form with Playwright for Python. The root [README](../../README.md#run-the-ui-tests) gives the commands that run them.
+This directory holds the UI tests of the form page of the money-transfer service, for anyone who compares Playwright for Python with the Robot Framework Browser library: `test_transfer_form.py` and `transfer-form.robot` check the same eight cases, under the same names, through the same Playwright release. The root [README](../../README.md#run-the-ui-tests-with-playwright-and-with-robot-framework) gives the commands that run them.
 
 ## Files
 
 | File | Contains |
 |---|---|
 | `test_transfer_form.py` | The cases with Playwright for Python, run by pytest through pytest-playwright |
+| `transfer-form.robot` | The same cases with the Robot Framework Browser library |
 | `conftest.py` | The fixture `base_url`, which takes the address of the service from `BASE_URL`, so that `page.goto("/")` opens the form page |
 
 ## Cases
 
-Each case is named as [../README.md](../README.md#how-a-test-names-its-source) describes. pytest prints the name after the browser, such as `[chromium-R1-BVA-lowest-valid-0.01]`.
+Each case is named as [../README.md](../README.md#how-a-test-names-its-source) describes. pytest prints the name after the browser, such as `[chromium-R1-BVA-lowest-valid-0.01]`; Robot Framework uses it as the test name.
 
 | Case | Amount | The page shows |
 |---|---|---|
@@ -28,8 +29,22 @@ A refused R1 case checks the prefix `Rejected: ` and not the reason after it, wh
 
 `R4-ST-new-transfer-starts-created` covers the transition of a new transfer into its initial state; beyond that it is an integration check of the page and the service rather than a further state transition test.
 
-Each assertion is an `expect()`, which retries for 5 seconds, the [default of `expect()`](https://playwright.dev/python/docs/test-assertions), so a test needs no wait for the response of the service.
+## From a Robot Framework keyword to a Playwright call
+
+| Robot Framework Browser library | Playwright for Python with pytest-playwright |
+|---|---|
+| `New Browser    chromium` in the suite setup | The session fixture `browser` |
+| `New Context    baseURL=${BASE_URL}` and `New Page` in the test setup | The fixture `page`: a new context and page for each test, with `base_url` from `conftest.py` |
+| `Go To    /` in `Submit A Transfer` | `page.goto("/")` in `submit_transfer` |
+| `Get Element By    Label    Amount in CHF    exact=${True}` | `page.get_by_label("Amount in CHF", exact=True)` |
+| `Get Element By Role    button    name=Create transfer` | `page.get_by_role("button", name="Create transfer")` |
+| `Fill Text`, `Select Options By    ...    value`, `Click` | `.fill()`, `.select_option()`, `.click()` |
+| `Get Text    ${result}    matches    ${CREATED}` | `expect(result).to_have_text(CREATED)` |
+| Waits up to 10 seconds for the element, then retries the assertion for 1 second, the [defaults of `timeout` and `retry_assertions_for`](https://robotframework-browser.org/docs/concepts/assertions) | Retries the assertion for 5 seconds, the [default of `expect()`](https://playwright.dev/python/docs/test-assertions) |
+| `Http    /transfers/${id}`, a request from the browser context | `page.request.get(f"/transfers/{id}")` |
+| One test per case, each calling the keywords with its amount | Test functions parametrised over their cases with `pytest.mark.parametrize`, each case with its name as its id |
+| `--variable CHANNEL:chrome` | `--browser-channel chrome` |
 
 ## Writing a case
 
-Give each case an account of its own through the `account` fixture of [../conftest.py](../conftest.py). Find each element by its label or its role, as a user finds it, so that the form page needs no test ids.
+Add each case to both files under the same name, and give it an account of its own: the `account` fixture of [../conftest.py](../conftest.py) in pytest, and the account that `Submit A Transfer` makes and returns in Robot Framework, which a case passes back to it as `account` for a further transfer of the same account. Find each element by its label or its role, as a user finds it, so that the form page needs no test ids.
