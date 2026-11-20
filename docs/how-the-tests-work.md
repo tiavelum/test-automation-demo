@@ -1,14 +1,16 @@
 # How the API tests reach the service
 
-This document shows in five diagrams how the API tests in [tests/](../tests/README.md) reach the service in `app/transfer_app.py`, for anyone who reads, changes or explains them: the layers and where each is defined, one request end to end, what runs when and how long each object lives, which fixture provides what to a test, and where two sides must use the same name. The rules the tests check are in [business-rules.md](business-rules.md); how CI starts the service and runs the tests is in the root README's [How it works](../README.md#how-it-works).
+This document shows in four diagrams and a table how the API tests in [tests/](../tests/README.md) reach the service in `app/transfer_app.py`, for anyone who reads, changes or explains them: the layers and where each is defined, one request end to end, what runs when and how long each object lives, which fixture provides what to a test, and where two sides must use the same name. The rules the tests check are in [business-rules.md](business-rules.md); how CI starts the service and runs the tests is in the root README's [How it works](../README.md#how-it-works).
 
 ## Reading the diagrams
+
+The first and the fourth diagram are flowcharts:
 
 | Mark | Meaning |
 |---|---|
 | Solid arrow | Our code calls the other side directly, such as `create(amount=…)` |
 | Dashed arrow with a label | A framework connects the two sides by a name or convention, which the label states, such as "by fixture name" |
-| Thick arrow | An HTTP request or response between the test process and the service process |
+| Thick arrow | An HTTP request between the test process and the service process |
 | Rounded box | A framework: pytest, uvicorn, FastAPI |
 | Rectangle | Code of this repository |
 | Dashed grey box | A `parametrize` argument with its values |
@@ -16,9 +18,19 @@ This document shows in five diagrams how the API tests in [tests/](../tests/READ
 | Blue, marked ⟨process⟩ | Lives as long as the service process |
 | Green, marked ⟨run⟩ | Lives as long as one pytest run |
 | Orange, marked ⟨test⟩ | Lives as long as one test case |
-| Grey | A step of the CI job, collection or a clean-up, outside these lifespans |
 
-Two diagrams use colour for something else, and say so with a title or label: in the sequence diagram, the two pale boxes are the test process and the service process, and the bands are the setup (orange), body (green) and teardown (grey) of one test; in the last diagram, pale orange marks code of the test process and pale blue code of the service process. In the sequence diagram a solid arrow is a call and a dashed one a return or a call that pytest or FastAPI makes; the HTTP request and response are the arrows between the two process boxes.
+The second and the third diagram are UML sequence diagrams. Time runs downwards, and each column is one object with its lifeline:
+
+| Mark | Meaning |
+|---|---|
+| Solid arrow | A call |
+| Dashed arrow | A return, or a call that pytest or FastAPI makes |
+| Arrow that bends back to its own column | A step inside that object |
+| ✕ at the end of an arrow | The object is destroyed; its column ends there |
+| A box partway down a column | The object is created there; before it, the object does not exist |
+| `alt` frame | Alternatives: only one of the parts separated by the dashed line happens |
+| `loop` frame | The steps inside happen once per item named in its label |
+| Coloured band with a label such as SETUP | A phase: setup, body and teardown of a test, or one test case |
 
 A reference such as `conftest.py 50–63` names the file and the lines that define the box; files without a directory are in `tests/` or, for `transfer_app.py`, in `app/`.
 
@@ -29,13 +41,16 @@ Terms: a **fixture** is a function marked `@pytest.fixture`; pytest calls it and
 The tests and the service run in two processes that share nothing but HTTP. Inside each process, most connections are made by a framework from a name, not by a call in our code.
 
 ```mermaid
-%%{init: {"theme": "base", "markdownAutoWrap": false, "flowchart": {"curve": "basis", "wrappingWidth": 400}, "themeVariables": {"fontSize": "15px", "lineColor": "#424242", "edgeLabelBackground": "#FFFFFF"}}}%%
+%%{init: {"theme": "base", "markdownAutoWrap": false, "flowchart": {"curve": "basis", "wrappingWidth": 400, "nodeSpacing": 40, "rankSpacing": 55}, "themeVariables": {"darkMode": false, "background": "#FFFFFF", "fontSize": "15px", "textColor": "#212121", "titleColor": "#212121", "primaryTextColor": "#212121", "secondaryTextColor": "#212121", "tertiaryTextColor": "#212121", "nodeTextColor": "#212121", "lineColor": "#424242", "edgeLabelBackground": "#FFFFFF", "clusterBkg": "#FAFAFA", "clusterBorder": "#9E9E9E"}}}%%
 flowchart TB
+  subgraph ALL[" "]
+  direction TB
   subgraph TP["Test process · the pytest command"]
-    direction TB
+    direction LR
     PYT(["`**pytest**
-    collects the tests, prepares
-    fixtures, calls each test
+    collects the tests,
+    prepares fixtures,
+    calls each test
     ⟨run⟩`"])
     TF["`**Test functions**
     tests/test_*.py
@@ -44,7 +59,7 @@ flowchart TB
     conftest.py: account 44–47,
     create 50–63, transfer_in 66–77
     ⟨test⟩`"]
-    API["`**api fixture and Api class**
+    API["`**api fixture, Api class**
     conftest.py 23–41
     ⟨run⟩`"]
     SES["`**requests.Session**
@@ -52,15 +67,13 @@ flowchart TB
     ⟨run⟩`"]
   end
 
-  subgraph SP["Service process"]
-    direction TB
+  subgraph SP["Service process · in the container, or started with python app/transfer_app.py"]
+    direction RL
     UV(["`**uvicorn**
-    in the container or started
-    with python app/transfer_app.py,
     listens on port 8000
     transfer_app.py 151–154
     ⟨process⟩`"])
-    RT(["`**FastAPI app and route table**
+    RT(["`**FastAPI app, route table**
     built from the decorators
     transfer_app.py 59, 90–148
     ⟨process⟩`"])
@@ -69,7 +82,8 @@ flowchart TB
     ConfirmRequest 49–50`"]
     HD["`**Handlers**
     create_transfer 100–122,
-    confirm, execute, cancel 130–148`"]
+    confirm, execute,
+    cancel 130–148`"]
     RL["`**Rule helpers**
     is_allowed 65–70 (R3),
     get_transfer 73–76,
@@ -77,6 +91,7 @@ flowchart TB
     DB[("`**transfers**
     dictionary in memory, 60
     ⟨process⟩`")]
+  end
   end
 
   PYT -. "calls each test,
@@ -86,15 +101,15 @@ flowchart TB
   TF -- "create(amount=…)" --> FXT
   FXT -- "api.post(…)" --> API
   API -- "session.post(url, json)" --> SES
-  SES == "HTTP request: POST /transfers
-  JSON body · port 8000" ==> UV
-  UV -- "hands over each request" --> RT
-  RT -. "builds the model from JSON,
+  TP == "HTTP request from requests.Session to uvicorn:
+  POST /transfers, JSON body, port 8000" ==> SP
+  UV -- "hands over
+  each request" --> RT
+  RT -. "builds the model,
   by the handler's annotation" .-> PD
   RT -. "calls the handler,
   by method and path" .-> HD
-  PD -. "handed in as request,
-  by the annotation" .-> HD
+  PD -. "handed in as request" .-> HD
   HD --> RL
   HD --> DB
   RL --> DB
@@ -102,13 +117,14 @@ flowchart TB
   classDef run fill:#C8E6C9,stroke:#2E7D32,stroke-width:2px,color:#000
   classDef test fill:#FFE0B2,stroke:#E65100,stroke-width:2px,color:#000
   classDef process fill:#BBDEFB,stroke:#1565C0,stroke-width:2px,color:#000
-  classDef plain fill:#FFFFFF,stroke:#546E7A,color:#000
+  classDef plain fill:#FFFFFF,stroke:#546E7A,stroke-width:1.5px,color:#000
   class PYT,API,SES run
   class TF,FXT test
   class UV,RT,DB process
   class PD,HD,RL plain
-  style TP fill:#FAFAFA,stroke:#9E9E9E
-  style SP fill:#FAFAFA,stroke:#9E9E9E
+  style ALL fill:#FFFFFF,stroke:#BDBDBD
+  style TP fill:#FAFAFA,stroke:#9E9E9E,color:#212121
+  style SP fill:#FAFAFA,stroke:#9E9E9E,color:#212121
 ```
 
 - No file imports `conftest.py`: pytest finds it in `tests/` and registers each function decorated with `@pytest.fixture` under its name.
@@ -117,126 +133,157 @@ flowchart TB
 
 ## One request end to end
 
-The case `R1-EP-valid-2500.50` of `test_amount_in_valid_partition_is_accepted`, with the form the data takes on each hop: a parameter value, a Python dict, JSON text, an HTTP request, a pydantic model with a `Decimal`, and back.
+The case `R1-EP-valid-2500.50` of `test_amount_in_valid_partition_is_accepted`, with the form the data takes on each step: a parameter value, a Python dict, JSON text, an HTTP request, a pydantic model with a `Decimal`, a stored `Transfer`, and back.
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontSize": "15px", "actorBkg": "#FFFFFF", "actorBorder": "#546E7A", "actorTextColor": "#000000", "actorLineColor": "#90A4AE", "signalColor": "#424242", "signalTextColor": "#000000", "noteBkgColor": "#FFFDE7", "noteBorderColor": "#BDBDBD", "noteTextColor": "#000000", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#546E7A", "loopTextColor": "#000000", "sequenceNumberColor": "#FFFFFF"}}}%%
+%%{init: {"theme": "base", "sequence": {"actorMargin": 30, "messageMargin": 40, "mirrorActors": false, "boxTextMargin": 6}, "themeVariables": {"darkMode": false, "background": "#FFFFFF", "fontSize": "15px", "textColor": "#212121", "titleColor": "#212121", "primaryTextColor": "#212121", "secondaryTextColor": "#212121", "tertiaryTextColor": "#212121", "lineColor": "#424242", "actorBkg": "#FFFFFF", "actorBorder": "#546E7A", "actorTextColor": "#000000", "actorLineColor": "#90A4AE", "signalColor": "#424242", "signalTextColor": "#000000", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#757575", "noteTextColor": "#000000", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#546E7A", "labelTextColor": "#000000", "loopTextColor": "#000000", "sequenceNumberColor": "#FFFFFF"}}}%%
 sequenceDiagram
   autonumber
-  box rgb(255, 250, 242) Test process
+  box rgb(255, 255, 255) Test process on the left · joined only by HTTP in step 9 · Service process on the right
   participant P as pytest
   participant T as test function<br/>test_amount_limits.py 17–21
   participant C as create fixture<br/>conftest.py 50–63
   participant S as Api and Session<br/>conftest.py 23–41
-  end
-  box rgb(240, 247, 255) Service process
-  participant F as uvicorn and FastAPI<br/>transfer_app.py 59, 100
+  participant F as uvicorn, FastAPI<br/>transfer_app.py 59, 100
   participant M as TransferRequest<br/>transfer_app.py 41–46
   participant H as create_transfer<br/>transfer_app.py 101–122
+  participant D as transfers<br/>transfer_app.py 60
   end
 
-  rect rgb(255, 243, 224)
-    Note over P,C: Setup of the test: case R1-EP-valid-2500.50, so amount = "2500.50" (parametrize, lines 9–16)
-    P-->>S: only in the first test of the run: runs the api fixture, GET /health, opens the Session (for this case it already exists)
-    P-->>C: calls the fixture create(api, account), by its name, after account
-    C-->>P: returns the inner function create (lines 54–61)
-    P-->>T: calls test(create=inner create, amount="2500.50")
+  rect rgb(255, 255, 255)
+  rect rgb(255, 224, 178)
+    Note over P: SETUP
+    P-->>S: first test only: api fixture opens the Session
+    P-->>C: create(api, account), by name
+    C-->>P: the inner function create
+    P-->>T: test(create, amount="2500.50")
   end
 
-  rect rgb(232, 245, 233)
-    Note over T,H: The test body
+  rect rgb(200, 230, 201)
+    Note over P: BODY
     T->>C: create(amount="2500.50")
-    Note over C: Python dict: account "CH-…" (own account), recipient,<br/>account_type "private", amount "2500.50"
-    C->>S: api.post("/transfers", json=body)
-    Note over S: dict becomes JSON text
-    S->>F: HTTP POST http://localhost:8000/transfers, JSON body
-    Note over F: route table: POST /transfers → create_transfer
-    F-->>M: JSON → TransferRequest, by the handler's annotation
+    C->>C: dict: account, recipient, …
+    C->>S: api.post("/transfers", json=dict)
+    S->>S: dict → JSON text
+    S->>F: HTTP POST /transfers with the JSON
+    F->>F: route table → create_transfer
+    F->>M: JSON → TransferRequest, by the annotation
     alt amount outside R1, or a field missing
       M-->>F: validation error
-      F-->>S: HTTP 422, the error as JSON, and the handler is never called
+      F-->>S: HTTP 422, the handler is never called
     else valid
-      M-->>F: TransferRequest, amount as Decimal("2500.50")
-      F-->>H: create_transfer(request=TransferRequest), by the route
-      Note over F,H: R2: sums the account's transfers of today in transfers (line 60),<br/>and if within the limit stores a Transfer with id, status "created", created_on
-      alt daily total above the limit of R2
-        H-->>F: raises HTTPException 422
-        F-->>S: HTTP 422, the detail as JSON
+      M-->>F: TransferRequest, amount Decimal("2500.50")
+      F->>H: create_transfer(request), by the route
+      H->>D: R2: sum today's transfers of the account
+      alt total above the daily limit
+        H-->>F: HTTPException 422
+        F-->>S: HTTP 422
       else within the limit
-        H-->>F: Transfer
+        H->>D: store Transfer: id, status "created"
+        H-->>F: the Transfer
         F-->>S: HTTP 201, the Transfer as JSON
       end
     end
     S-->>C: requests.Response
     C-->>T: requests.Response
-    Note over T: assert status 201, status "created", amount unchanged (lines 19–21)
+    T->>T: assert 201, "created", amount
   end
 
   rect rgb(236, 239, 241)
-    Note over P,C: Teardown of the test: account and create are discarded, while api and its Session stay for the next test
+    Note over P: TEARDOWN
+    P-->>C: discards create and account
+  end
   end
 ```
 
-- R1 is checked before the handler runs: the `Field(ge=…, le=…, decimal_places=2)` of `TransferRequest` refuses the amount, and `create_transfer` never sees it.
+- Step 1 happens only in the first test case of the run; for this case, the second, the `api` fixture and its `requests.Session` already exist.
+- R1 is checked in step 11, before the handler runs: the `Field(ge=…, le=…, decimal_places=2)` of `TransferRequest` refuses the amount, and `create_transfer` never sees it.
 - R2 needs the transfers stored so far, so it is checked in the handler; both refusals reach the test as status 422.
-- The test sees only the `requests.Response`: the `Decimal` stays inside the service, and the amount comes back in the JSON as a string, which is why the test compares `Decimal(response.json()["amount"])` with `Decimal(amount)`.
+- The `Decimal` stays inside the service: the amount comes back in the JSON as a string, which is why the test compares `Decimal(response.json()["amount"])` with `Decimal(amount)`.
 
 ## What runs when
 
-The order of the main steps of one CI run of the job `api-tests`, not to scale; installing, and keeping the report between the service log and `docker compose down`, are left out. Each bar lives as long as its colour says: the service and its `transfers` from `docker compose up` to `docker compose down`, the `api` fixture and its `requests.Session` for the pytest run, and `account` and `create` for one test case.
+The main steps of one CI run of the job `api-tests`, with the lifespan of each object: a column starts where the object is created and ends with the box where it is destroyed. Installing, and keeping the report between the service log and `docker compose down`, are left out.
 
 ```mermaid
-%%{init: {"theme": "base", "gantt": {"barHeight": 24, "barGap": 6, "topPadding": 40, "leftPadding": 190, "fontSize": 14, "sectionFontSize": 14, "numberSectionStyles": 2}, "themeVariables": {"fontSize": "14px", "sectionBkgColor": "#FFFFFF", "altSectionBkgColor": "#F5F5F5", "sectionBkgColor2": "#FFFFFF", "taskBkgColor": "#FFE0B2", "taskBorderColor": "#E65100", "taskTextColor": "#000000", "taskTextDarkColor": "#000000", "taskTextOutsideColor": "#000000", "taskTextLightColor": "#000000", "activeTaskBkgColor": "#C8E6C9", "activeTaskBorderColor": "#2E7D32", "doneTaskBkgColor": "#BBDEFB", "doneTaskBorderColor": "#1565C0", "critBkgColor": "#ECEFF1", "critBorderColor": "#546E7A", "gridColor": "#E0E0E0"}}}%%
-gantt
-  dateFormat HH:mm:ss
-  axisFormat ·
-  todayMarker off
+%%{init: {"theme": "base", "sequence": {"actorMargin": 30, "messageMargin": 34, "mirrorActors": true}, "themeVariables": {"darkMode": false, "background": "#FFFFFF", "fontSize": "15px", "textColor": "#212121", "titleColor": "#212121", "primaryTextColor": "#212121", "secondaryTextColor": "#212121", "tertiaryTextColor": "#212121", "lineColor": "#424242", "actorBkg": "#FFFFFF", "actorBorder": "#546E7A", "actorTextColor": "#000000", "actorLineColor": "#90A4AE", "signalColor": "#424242", "signalTextColor": "#000000", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#757575", "noteTextColor": "#000000", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#546E7A", "labelTextColor": "#000000", "loopTextColor": "#000000"}}}%%
+sequenceDiagram
+  participant CI as CI job api-tests
+  rect rgb(255, 255, 255)
+  CI->>CI: counts the test cases
+  create participant SV as service process<br/>⟨process⟩
+  CI->>SV: docker compose up --build --detach --wait
+  create participant TR as transfers<br/>⟨process⟩
+  SV->>TR: importing transfer_app.py creates {}
+  SV-->>CI: the health check of compose.yaml passes
+  create participant PY as pytest<br/>⟨run⟩
+  CI->>PY: pytest
+  PY->>PY: collection: imports conftest.py and the test files, one test case per parametrize value
 
-  section CI job api-tests
-    count check – pytest --collect-only against EXPECTED_TESTS :crit, c1, 00:00:00, 00:00:06
-    docker compose up --build --detach --wait         :crit, c2, 00:00:06, 00:00:16
-    pytest – runs every test case                     :crit, c3, 00:00:16, 00:01:32
-    save the service log                              :crit, c4, 00:01:32, 00:01:35
-    docker compose down                               :crit, c5, 00:01:35, 00:01:40
+  rect rgb(255, 224, 178)
+    Note over PY: TEST CASE 1
+    create participant API as api fixture and Session<br/>⟨run⟩
+    PY->>API: setup, on first use: GET /health, opens the Session
+    create participant A1 as account<br/>⟨test⟩
+    PY->>A1: setup
+    create participant C1 as create<br/>⟨test⟩
+    PY->>C1: setup, with api and account
+    PY->>C1: body: the test calls create(amount)
+    C1->>API: api.post("/transfers", json=…)
+    API->>SV: HTTP POST /transfers
+    SV->>TR: stores the transfer
+    SV-->>API: HTTP 201
+    destroy C1
+    PY-xC1: teardown
+    destroy A1
+    PY-xA1: teardown
+  end
 
-  section Service ⟨process⟩
-    image built, python transfer_app.py starts uvicorn :done, s1, 00:00:06, 00:00:13
-    health check of compose.yaml passes               :done, s2, 00:00:13, 00:00:16
-    answers HTTP requests on port 8000                :done, s3, 00:00:16, 00:01:35
-    transfers {} – empty at start, grows with every test, gone at stop :done, s4, 00:00:10, 00:01:37
+  rect rgb(255, 224, 178)
+    Note over PY: TEST CASE 2
+    create participant A2 as account<br/>⟨test⟩
+    PY->>A2: setup, a new account
+    create participant C2 as create<br/>⟨test⟩
+    PY->>C2: setup, api reused
+    C2->>API: api.post
+    API->>SV: HTTP POST /transfers
+    SV->>TR: stores a second transfer, the first stays
+    destroy C2
+    PY-xC2: teardown
+    destroy A2
+    PY-xA2: teardown
+  end
 
-  section pytest run ⟨run⟩
-    collection – import conftest.py and test files, expand parametrize :crit, r1, 00:00:16, 00:00:22
-    api up to yield – GET /health, Session open        :active, r2, 00:00:22, 00:00:25
-    api and Session alive, shared by every test        :active, r3, 00:00:25, 00:01:26
-    api after yield – Session closed                   :crit, r4, 00:01:26, 00:01:28
-    report – summary and junit XML                     :active, r5, 00:01:28, 00:01:32
+  loop every further test case
+    PY->>PY: setup, body and teardown as in test case 2
+  end
 
-  section Test 1 ⟨test⟩
-    setup – api on first use, then account, then create :t1a, 00:00:22, 00:00:28
-    body – create(amount) sends POST, asserts          :t1b, 00:00:28, 00:00:36
-    teardown – account and create discarded           :crit, t1c, 00:00:36, 00:00:38
-
-  section Test 2 ⟨test⟩
-    setup – a new account, a new create, api reused   :t2a, 00:00:38, 00:00:41
-    body                                             :t2b, 00:00:41, 00:00:49
-    teardown                                         :crit, t2c, 00:00:49, 00:00:51
-
-  section Further tests ⟨test⟩
-    the same, once per test case                     :t3, 00:00:51, 00:01:26
+  destroy API
+  PY-xAPI: after the yield: closes the Session
+  destroy PY
+  PY-->>CI: summary, junit XML and exit code, then pytest ends
+  CI->>SV: docker compose logs, saved as the service log
+  destroy TR
+  SV-xTR: gone with the process
+  destroy SV
+  CI-xSV: docker compose down
+  end
 ```
 
-- Before any test: collection imports the files and turns each `parametrize` value into a test case of its own; nothing has reached the service yet.
+- The count check compares the number of test cases that `pytest --collect-only` finds with `EXPECTED_TESTS` in `ci.yml`, before the service starts.
+- Collection runs before any test: it imports the files and turns each `parametrize` value into a test case of its own; nothing has reached the service yet.
 - `scope="session"` makes the `api` fixture run once, when the first test that needs it is set up; its `yield` keeps the `with requests.Session()` block open until the last test has finished.
-- `account` and `create` run again for every test case, so each case gets an account of its own; their objects are discarded after the test, but the transfers the test created stay in the service until it stops.
+- `account` and `create` are made again for every test case, so each case gets an account of its own; they are discarded after the test, but the transfers the test created stay in `transfers` until the service stops.
 
 ## Which fixture provides what
 
 Three tests, each with the parameters pytest fills for it. Every arrow is made by pytest from a name: a parameter of a test or a fixture names either a fixture or a `parametrize` argument.
 
 ```mermaid
-%%{init: {"theme": "base", "markdownAutoWrap": false, "flowchart": {"wrappingWidth": 400, "curve": "basis", "nodeSpacing": 30, "rankSpacing": 70}, "themeVariables": {"fontSize": "15px", "lineColor": "#424242", "edgeLabelBackground": "#FFFFFF"}}}%%
+%%{init: {"theme": "base", "markdownAutoWrap": false, "flowchart": {"wrappingWidth": 400, "curve": "basis", "nodeSpacing": 30, "rankSpacing": 70}, "themeVariables": {"darkMode": false, "background": "#FFFFFF", "fontSize": "15px", "textColor": "#212121", "titleColor": "#212121", "primaryTextColor": "#212121", "secondaryTextColor": "#212121", "tertiaryTextColor": "#212121", "nodeTextColor": "#212121", "lineColor": "#424242", "edgeLabelBackground": "#FFFFFF", "clusterBkg": "#FAFAFA", "clusterBorder": "#9E9E9E"}}}%%
 flowchart LR
+  subgraph ALL[" "]
+  direction LR
   classDef run fill:#C8E6C9,stroke:#2E7D32,stroke-width:2px,color:#000
   classDef test fill:#FFE0B2,stroke:#E65100,stroke-width:2px,color:#000
   classDef data fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#000,stroke-dasharray:4 3
@@ -280,6 +327,8 @@ flowchart LR
     test_status_transitions.py:35 · 4 cases`"]
   end
 
+  end
+
   API -. "api" .-> CRE
   ACC -. "account" .-> CRE
   API -. "api" .-> TIN
@@ -297,8 +346,9 @@ flowchart LR
   class ACC,CRE,TIN test
   class PA,PS data
   class T1,T2,T3 fn
-  style CF fill:#FAFAFA,stroke:#9E9E9E
-  style TS fill:#FAFAFA,stroke:#9E9E9E
+  style ALL fill:#FFFFFF,stroke:#BDBDBD
+  style CF fill:#FAFAFA,stroke:#9E9E9E,color:#212121
+  style TS fill:#FAFAFA,stroke:#9E9E9E,color:#212121
 ```
 
 - pytest creates each fixture at most once per test case and hands the same object to everyone in that case who names it: the `account` that `test_daily_limit_applies_per_account` receives is the one its `create` uses by default, which is how the test knows which account its transfers went to.
@@ -307,89 +357,13 @@ flowchart LR
 
 ## Where the two sides must match
 
-Each of the six hand-overs of a test case works only because both sides use the same name. Python itself checks the keyword of the solid arrow ② at the call, and the test's own dictionary lookup in ⑥; pytest, FastAPI and pydantic match ①, ③, ④ and ⑤ while the test runs.
+Six hand-overs of a test case work only because both sides spell a name the same way. The steps refer to the request diagram above. Python itself checks ② at the call and ⑥ in the test's own dictionary lookup; pytest, FastAPI and pydantic match ①, ③, ④ and ⑤ while the test runs.
 
-```mermaid
-%%{init: {"theme": "base", "markdownAutoWrap": false, "flowchart": {"wrappingWidth": 500, "nodeSpacing": 20, "rankSpacing": 60, "padding": 10}, "themeVariables": {"fontSize": "15px", "lineColor": "#424242", "edgeLabelBackground": "#FFFFFF", "fontFamily": "Arial"}}}%%
-flowchart TB
-  classDef tp fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#000
-  classDef sp fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#000
-
-  subgraph I1["① pytest hands values to the test function"]
-    direction LR
-    A1["`*test process* · test_amount_limits.py:17
-    def test_…(**create**, **amount**)`"]
-    B1["`*test process* · conftest.py:51 and test_amount_limits.py:10
-    def **create**(api, account) · parametrize(**'amount'**, …)`"]
-    B1 -. "pytest matches parameter name = fixture name or parametrize name" .-> A1
-  end
-
-  subgraph I2["② The test calls the function that create returned"]
-    direction LR
-    A2["`*test process* · test_amount_limits.py:18
-    create(**amount**=amount)`"]
-    B2["`*test process* · conftest.py:54
-    def create(**amount**='100.00', **account_type**='private', **account_id**=None)`"]
-    A2 -- "Python matches keyword = parameter name, at the call" --> B2
-  end
-
-  subgraph I3["③ create sends the request to the service"]
-    direction LR
-    A3["`*test process* · conftest.py:61 and 31
-    api.post(**'/transfers'**, json=body) → session.**post**(BASE_URL + path)`"]
-    B3["`*service process* · transfer_app.py:100
-    @app.**post**(**'/transfers'**, status_code=201)`"]
-    A3 == "FastAPI matches method + path = a route of the table" ==> B3
-  end
-
-  subgraph I4["④ The JSON body becomes a TransferRequest"]
-    direction LR
-    A4["`*test process* · conftest.py:55–60
-    body keys **account**, **recipient**, **account_type**, **amount**`"]
-    B4["`*service process* · transfer_app.py:41–46
-    TransferRequest fields **account**, **recipient**, **account_type**, **amount**`"]
-    A4 == "pydantic matches JSON key = field name, then checks type and range" ==> B4
-  end
-
-  subgraph I5["⑤ FastAPI hands the model to the handler"]
-    direction LR
-    A5["`*service process* · transfer_app.py:41
-    class **TransferRequest**(BaseModel)`"]
-    B5["`*service process* · transfer_app.py:101
-    def create_transfer(request: **TransferRequest**) -> **Transfer**`"]
-    A5 -. "FastAPI parses the body into this class, by the annotation" .-> B5
-  end
-
-  subgraph I6["⑥ The answer goes back to the test"]
-    direction LR
-    A6["`*service process* · transfer_app.py:53–56 and 122
-    return transfer · Transfer adds **id**, **status**, **created_on**`"]
-    B6["`*test process* · test_amount_limits.py:19–21
-    response.status_code · response.json()[**'status'**] · [**'amount'**]`"]
-    A6 == "the test reads JSON keys = field names of Transfer" ==> B6
-  end
-
-  I1 ~~~ I2 ~~~ I3 ~~~ I4 ~~~ I5 ~~~ I6
-
-  class A1,B1,A2,B2,B6 tp
-  class B3,B4,A5,B5,A6 sp
-  class A3,A4 tp
-  style I1 fill:#FAFAFA,stroke:#9E9E9E
-  style I2 fill:#FAFAFA,stroke:#9E9E9E
-  style I3 fill:#FAFAFA,stroke:#9E9E9E
-  style I4 fill:#FAFAFA,stroke:#9E9E9E
-  style I5 fill:#FAFAFA,stroke:#9E9E9E
-  style I6 fill:#FAFAFA,stroke:#9E9E9E
-```
-
-What happens when the two sides of a hand-over do not match:
-
-| Hand-over | Mismatch | What you see |
-|---|---|---|
-| ① parameter → fixture | A parameter names no fixture, such as `creat` | The test errors at setup: `fixture 'creat' not found` |
-| ① parameter → parametrize | `parametrize` names an argument the test does not have | Collection fails, `function uses no argument 'amount'`, and pytest runs no test at all |
-| ② keyword → parameter | `create(amonut="1.00")` | The test fails with `TypeError: … got an unexpected keyword argument 'amonut'` |
-| ③ method and path → route | A path the route table lacks, or another method on a known path | Status 404 or 405; the test fails on its status assertion, or with a `KeyError` where it reads the body first |
-| ④ JSON key → field | A required key missing or misspelled, or a value outside its type or range | Status 422 with `"type": "missing"` or the failed check; a key the model does not know is ignored without an error |
-| ⑤ annotation → body | The annotation `: TransferRequest` removed | FastAPI reads `request` as a query parameter and answers 422 for every body |
-| ⑥ JSON key → test | The test reads a key the response lacks | The test fails with `KeyError` |
+| Hand-over | This side | Must equal | That side | When they differ |
+|---|---|---|---|---|
+| ① pytest → test, step 4 | `def test_…(create, amount)`, `test_amount_limits.py:17` | parameter name = fixture or `parametrize` name | `def create(…)`, `conftest.py:51`; `parametrize("amount", …)`, `test_amount_limits.py:10` | The test errors at setup: `fixture 'creat' not found`. A `parametrize` name the test lacks fails collection, `function uses no argument 'amount'`, and pytest runs no test at all |
+| ② test → create, step 5 | `create(amount=amount)`, `test_amount_limits.py:18` | keyword = parameter name | `def create(amount=…, account_type=…, account_id=None)`, `conftest.py:54` | The test fails with `TypeError: … got an unexpected keyword argument 'amonut'` |
+| ③ create → route, steps 9–10 | `session.post(BASE_URL + "/transfers")`, `conftest.py:61` and `31` | method and path = a route | `@app.post("/transfers")`, `transfer_app.py:100` | Status 404 or 405; the test fails on its status assertion, or with a `KeyError` where it reads the body first |
+| ④ JSON body → model, step 11 | keys `account`, `recipient`, `account_type`, `amount`, `conftest.py:55–60` | JSON key = field name | fields of `TransferRequest`, `transfer_app.py:41–46` | Status 422 with `"type": "missing"`; a key the model does not know is ignored without an error |
+| ⑤ model → handler, step 15 | `class TransferRequest`, `transfer_app.py:41` | annotation = class | `def create_transfer(request: TransferRequest)`, `transfer_app.py:101` | Without the annotation, FastAPI reads `request` as a query parameter and answers 422 for every body |
+| ⑥ response → test, steps 21–24 | fields of `Transfer`: `id`, `status`, …, `transfer_app.py:53–56` | JSON key = field name | `response.json()["status"]`, `test_amount_limits.py:19–21` | The test fails with `KeyError` |
