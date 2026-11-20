@@ -12,9 +12,13 @@ It is not a payment system: the service keeps its transfers in memory and has no
 
 ## Getting started
 
+Start the service in a container, then run the tests against it: the API tests and the Playwright UI tests first, then the Robot Framework UI tests, which need Node.js besides. Each test run ends with a result of its own.
+
 Requires Git 2 or later, Docker 24 or later with Docker Compose v2, and Python 3.13 with pip.
 
-Get the repository and start the service in a container. The command returns once the service answers its health check. Without Docker, run the first two commands, then follow [Run the service without Docker](#run-the-service-without-docker) instead of the rest of this section, since the tests need a running service:
+### Start the service
+
+Get the repository and start the service in a container. The command returns once the service answers its health check. Without Docker, run the first two commands, then follow [Run the tests without Docker](#run-the-tests-without-docker) instead of the rest of this section, since the tests need a running service:
 
 ```bash
 git clone https://github.com/tiavelum/test-automation-demo.git
@@ -22,21 +26,34 @@ cd test-automation-demo
 docker compose up --build --detach --wait
 ```
 
+### Run the API tests and the Playwright UI tests
+
 Install the test dependencies and the browser of Playwright, which on Debian and Ubuntu asks for your password to install the system libraries the browser needs, then run the API tests and the Playwright UI tests against the service at `http://localhost:8000`:
 
 ```bash
-python3 -m venv .venv
+python3.13 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements-dev.txt
 playwright install --with-deps chromium
 pytest
 ```
 
-The run ends with:
+The run ends with a line that counts only passed tests, with the number of tests in place of `<n>`:
 
 ```
-============================== 54 passed in 4.34s ==============================
+============================== <n> passed in <seconds>s ==============================
 ```
+
+### Run the Robot Framework UI tests
+
+Requires Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. In the same virtual environment and with the service running, install the Node.js packages of the Browser library and its browser once, then run the same UI cases as with Playwright:
+
+```bash
+rfbrowser init chromium
+robot --outputdir test-results/robot tests/ui
+```
+
+The run ends with `<n> tests, <n> passed, 0 failed` and writes its report to `test-results/robot/report.html` and each keyword step to `log.html` beside it. [tests/ui/README.md](tests/ui/README.md) pairs each case and each keyword with its Playwright counterpart.
 
 ## Example
 
@@ -64,28 +81,15 @@ Each test id starts with its rule and its technique, as [tests/README.md](tests/
 tests/test_confirmation_rules.py::test_confirmation_follows_decision_table[R3-DT-D5-savings-low-single] PASSED
 ```
 
-## Run the UI tests with Playwright and with Robot Framework
+The UI cases carry the same ids. pytest prints them after the browser, such as `[chromium-R1-BVA-lowest-valid-0.01]`, and Robot Framework uses them as test names, so a pattern selects them there, here the cases of rule R1:
 
 ```bash
-pytest -v tests/ui
+robot --outputdir test-results/robot --test "R1-*" tests/ui
 ```
 
-With the service running (in its container, or started as under "Run the service without Docker"), this runs the eight UI cases with Playwright, one line each, such as:
+## Run the UI tests in an installed Chrome
 
-```
-tests/ui/test_transfer_form.py::test_amount_in_valid_partition_is_accepted[chromium-R1-BVA-lowest-valid-0.01] PASSED
-```
-
-The Robot Framework suite needs Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. Install its Node.js packages and its browser once, then run the same eight cases:
-
-```bash
-rfbrowser init chromium
-robot --outputdir test-results/robot tests/ui
-```
-
-The run ends with `8 tests, 8 passed, 0 failed` and writes its log to `test-results/robot/log.html`. [tests/ui/README.md](tests/ui/README.md) maps each case and each keyword to its Playwright counterpart.
-
-Where Playwright cannot download its browsers, run both suites in an installed Google Chrome instead:
+Where Playwright cannot download its browsers, run both UI suites in an installed Google Chrome instead:
 
 ```bash
 rfbrowser init --skip-browsers
@@ -93,24 +97,33 @@ pytest tests/ui --browser-channel chrome
 robot --outputdir test-results/robot --variable CHANNEL:chrome tests/ui
 ```
 
-## Run the service without Docker
+## Run the tests without Docker
+
+Here the service runs directly with Python instead of in a container. It holds its terminal, so the tests run in a second one.
+
+### Start the service
 
 ```bash
-python3 -m venv .venv
+python3.13 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements-dev.txt
 playwright install --with-deps chromium
 python app/transfer_app.py
 ```
 
-The service then prints `Uvicorn running on http://127.0.0.1:8000`. In a second terminal, run the tests in the same virtual environment:
+The service then prints `Uvicorn running on http://127.0.0.1:8000`. Stop it with Ctrl+C when the tests are done.
+
+### Run the tests against the service
+
+In a second terminal, in the same virtual environment, run the API tests and the Playwright UI tests, and, once `rfbrowser init` has run as under "Run the Robot Framework UI tests", the Robot Framework UI tests too:
 
 ```bash
 . .venv/bin/activate
 pytest
+robot --outputdir test-results/robot tests/ui
 ```
 
-Stop the service with Ctrl+C.
+Both runs end as under "Getting started", with every test passed.
 
 ## Stop the service in its container
 
