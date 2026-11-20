@@ -43,6 +43,8 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       BASE_URL: http://localhost:8000
+      # The number of API tests; a pull request that adds or removes one changes it.
+      EXPECTED_TESTS: 46
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -52,6 +54,14 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
+
+      # A test file that pytest no longer collects, such as after a rename, would leave the run
+      # green with fewer tests.
+      - name: Check that pytest collects every API test
+        run: |
+          collected=$(pytest --collect-only -q --ignore=tests/ui | tail -1 | grep -oE '^[0-9]+' || true)
+          echo "pytest collects ${collected:-no} API tests; ci.yml expects $EXPECTED_TESTS"
+          test "${collected:-0}" -eq "$EXPECTED_TESTS"
 
       # --wait returns once the health check of compose.yaml passes, and fails if it never does.
       - name: Build and start the service
@@ -81,6 +91,9 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       BASE_URL: http://localhost:8000
+      # The number of UI cases, the same in both suites; a pull request that adds or removes a
+      # case changes it.
+      EXPECTED_TESTS: 8
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -103,6 +116,17 @@ jobs:
 
       - name: Install the Node.js packages of the Browser library and its browser
         run: rfbrowser init chromium
+
+      # Both suites check the same cases, so each must hold all of them; a dry run of Robot
+      # Framework lists its tests without opening a browser.
+      - name: Check that both suites hold every UI case
+        run: |
+          playwright=$(pytest --collect-only -q tests/ui | tail -1 | grep -oE '^[0-9]+' || true)
+          robot=$(robot --dryrun --output NONE --report NONE --log NONE tests/ui \
+            | grep -E '^[0-9]+ tests?,' | tail -1 | grep -oE '^[0-9]+' || true)
+          echo "Playwright ${playwright:-no}, Robot Framework ${robot:-no}; ci.yml expects $EXPECTED_TESTS"
+          test "${playwright:-0}" -eq "$EXPECTED_TESTS"
+          test "${robot:-0}" -eq "$EXPECTED_TESTS"
 
       - name: Build and start the service
         id: service

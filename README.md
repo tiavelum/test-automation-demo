@@ -101,7 +101,7 @@ robot --outputdir test-results/robot --variable CHANNEL:chrome tests/ui
 
 Here the service runs directly with Python instead of in a container. It holds its terminal, so the tests run in a second one.
 
-### Start the service
+### Start the service with Python
 
 ```bash
 python3.13 -m venv .venv
@@ -176,6 +176,8 @@ The tests and the service read these variables from the environment; `.env.examp
 The tests reach the service only over HTTP at `BASE_URL`, the API tests directly and the UI tests through a browser that opens the form page, so the same tests run against the container that `compose.yaml` starts and against `app/transfer_app.py` started with Python. Playwright for Python and the Browser library drive the same Playwright release, 1.64.1, which `requirements-dev.txt` pins for the first and the Browser library locks for its Node.js process.
 
 On every pull request and every push to `main`, `.github/workflows/ci.yml` runs three jobs. `lint` checks formatting and lint with ruff and Robocop. `api-tests` starts the service with `docker compose up --build --detach --wait`, runs the API tests against it and keeps the JUnit report `api-tests.xml` and the service log for seven days as the workflow artifact `api-test-report`. `ui-tests` installs Chromium for each UI tool, starts the service the same way, runs the Playwright and then the Robot Framework suite, and keeps the JUnit report, the traces and screenshots of failed Playwright tests, the Robot Framework log and report and the service log for seven days as the artifact `ui-test-report`.
+
+Before they run any test, `api-tests` and `ui-tests` each compare the number of tests their runners collect with the number `EXPECTED_TESTS` that `ci.yml` sets for the job, and fail on any difference: a test file that pytest stops collecting, such as after a rename, or a case missing from one of the two UI suites, would otherwise leave the run green with fewer tests. A pull request that adds or removes a test changes that number.
 
 ## Known limits
 
