@@ -97,27 +97,27 @@ robot --outputdir test-results/robot --variable CHANNEL:chrome tests/ui
 
 Here the service runs directly with Python instead of in a container. It holds its terminal, so the tests run in a second one.
 
-**Start the service with Python:** create the virtual environment, install the dependencies and the browser of Playwright, and start the service:
+1. **Start the service with Python:** create the virtual environment, install the dependencies and the browser of Playwright, and start the service:
 
-```bash
-python3.13 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements-dev.txt
-playwright install --with-deps chromium
-python app/transfer_app.py
-```
+   ```bash
+   python3.13 -m venv .venv
+   . .venv/bin/activate
+   pip install -r requirements-dev.txt
+   playwright install --with-deps chromium
+   python app/transfer_app.py
+   ```
 
-The service then prints `Uvicorn running on http://127.0.0.1:8000`. Stop it with Ctrl+C when the tests are done.
+   The service then prints `Uvicorn running on http://127.0.0.1:8000`. Stop it with Ctrl+C when the tests are done.
 
-**Run the tests against the service:** in a second terminal, in the same virtual environment, run the API tests and the Playwright UI tests, and, once `rfbrowser init` has run as under "Run the Robot Framework UI tests", the Robot Framework UI tests too:
+2. **Run the tests against the service:** in a second terminal, in the same virtual environment, run the API tests and the Playwright UI tests, and, once `rfbrowser init` has run as under "Run the Robot Framework UI tests", the Robot Framework UI tests too:
 
-```bash
-. .venv/bin/activate
-pytest
-robot --outputdir test-results/robot tests/ui
-```
+   ```bash
+   . .venv/bin/activate
+   pytest
+   robot --outputdir test-results/robot tests/ui
+   ```
 
-Both runs end as under "Getting started", with every test passed.
+   Both runs end as under "Getting started", with every test passed.
 
 ## Stop the service in its container
 
