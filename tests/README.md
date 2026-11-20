@@ -26,3 +26,5 @@ Every parametrised case carries an id, and every other test a docstring, that st
 ## Writing a test
 
 Give each test an account of its own through the `account` fixture, which `create` uses by default. The service keeps its transfers in memory for as long as it runs, so a test that shared an account with another would count that test's transfers towards its daily limit, and a second run against the same instance would fail.
+
+Adding or removing a test changes the number of tests that CI expects, `EXPECTED_TESTS` in `.github/workflows/ci.yml`, as the root README's [How it works](../README.md#how-it-works) describes.
