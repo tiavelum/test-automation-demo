@@ -20,7 +20,7 @@ Every parametrised case carries an id, and every other test a docstring, that st
 | `test_amount_limits.py` | R1 amount range, R2 daily limit | EP, BVA |
 | `test_confirmation_rules.py` | R3 confirmation rule | DT, EP for inputs outside its conditions |
 | `test_status_transitions.py` | R4 transfer status | ST, EP for unknown transfer ids |
-| `conftest.py` | | The fixtures: an API client for the base URL in `BASE_URL`, and helpers that create a transfer and bring it into a status |
+| `conftest.py` | | The fixtures: an API client for the base URL in `BASE_URL`, and helpers that create a transfer and bring it into a status; [how-the-tests-work.md](../docs/how-the-tests-work.md) shows which fixture provides what and how long each lives |
 | `ui/` | R1 amount range, R2 daily limit, R4 transfer status | EP, BVA, ST: the UI tests of the form page, the same cases with Playwright and with Robot Framework, as [ui/README.md](ui/README.md) describes |
 
 ## Writing a test

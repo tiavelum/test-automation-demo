@@ -145,7 +145,7 @@ robot --outputdir test-results/robot tests/ui
 | `app/` | The service: `transfer_app.py`, the form page `transfer-form.html`, the `Dockerfile` of its image and its pinned `requirements.txt` |
 | `tests/` | The API tests and their fixtures; [tests/README.md](tests/README.md) maps each file to its rule and technique |
 | `tests/ui/` | The UI tests of the form page, once with Playwright for Python and once with the Robot Framework Browser library; [tests/ui/README.md](tests/ui/README.md) pairs their cases |
-| `docs/` | `business-rules.md`, the rules R1 to R4 that the service implements and the tests are derived from |
+| `docs/` | `business-rules.md`, the rules R1 to R4 that the service implements and the tests are derived from, and `how-the-tests-work.md`, diagrams of how the API tests reach the service |
 | `.github/workflows/` | `ci.yml`, the workflow of "How it works" |
 | `compose.yaml` | Builds the image from `app/` and starts it on port 8000 with a health check |
 | `requirements-dev.txt` | The pinned dependencies of the service, the tests and the checks, for a run without Docker |
@@ -167,7 +167,7 @@ The tests and the service read these variables from the environment; `.env.examp
 
 ## How it works
 
-The tests reach the service only over HTTP at `BASE_URL`, the API tests directly and the UI tests through a browser that opens the form page, so the same tests run against the container that `compose.yaml` starts and against `app/transfer_app.py` started with Python. Playwright for Python and the Browser library drive the same Playwright release, 1.64.1, which `requirements-dev.txt` pins for the first and the Browser library locks for its Node.js process.
+The tests reach the service only over HTTP at `BASE_URL`, the API tests directly and the UI tests through a browser that opens the form page, so the same tests run against the container that `compose.yaml` starts and against `app/transfer_app.py` started with Python. [docs/how-the-tests-work.md](docs/how-the-tests-work.md) shows in diagrams how an API test gets from pytest to the service and back. Playwright for Python and the Browser library drive the same Playwright release, 1.64.1, which `requirements-dev.txt` pins for the first and the Browser library locks for its Node.js process.
 
 On every pull request and every push to `main`, `.github/workflows/ci.yml` runs three jobs. `lint` checks formatting and lint with ruff and Robocop. `api-tests` starts the service with `docker compose up --build --detach --wait`, runs the API tests against it and keeps the JUnit report `api-tests.xml` and the service log for seven days as the workflow artifact `api-test-report`. `ui-tests` installs Chromium for each UI tool, starts the service the same way, runs the Playwright and then the Robot Framework suite, and keeps the JUnit report, the traces and screenshots of failed Playwright tests, the Robot Framework log and report and the service log for seven days as the artifact `ui-test-report`.
 
