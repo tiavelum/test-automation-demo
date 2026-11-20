@@ -12,11 +12,11 @@ It is not a payment system: the service keeps its transfers in memory and has no
 
 ## Getting started
 
-The first part runs the API tests and the Playwright UI tests; the second adds the Robot Framework suite, which needs Node.js besides. Each part ends with a result of its own.
-
-### Run the API tests and the Playwright UI tests
+Start the service in a container, then run the tests against it: the API tests and the Playwright UI tests first, then the Robot Framework UI tests, which need Node.js besides. Each test run ends with a result of its own.
 
 Requires Git 2 or later, Docker 24 or later with Docker Compose v2, and Python 3.13 with pip.
+
+### Start the service
 
 Get the repository and start the service in a container. The command returns once the service answers its health check. Without Docker, run the first two commands, then follow [Run the tests without Docker](#run-the-tests-without-docker) instead of the rest of this section, since the tests need a running service:
 
@@ -25,6 +25,8 @@ git clone https://github.com/tiavelum/test-automation-demo.git
 cd test-automation-demo
 docker compose up --build --detach --wait
 ```
+
+### Run the API tests and the Playwright UI tests
 
 Install the test dependencies and the browser of Playwright, which on Debian and Ubuntu asks for your password to install the system libraries the browser needs, then run the API tests and the Playwright UI tests against the service at `http://localhost:8000`:
 
@@ -42,7 +44,7 @@ The run ends with:
 ============================== 54 passed in 4.34s ==============================
 ```
 
-### Add the Robot Framework suite and run it
+### Run the Robot Framework UI tests
 
 Requires Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. In the same virtual environment and with the service running, install the Node.js packages of the Browser library and its browser once, then run the same eight UI cases:
 
@@ -113,7 +115,7 @@ The service then prints `Uvicorn running on http://127.0.0.1:8000`. Stop it with
 
 ### Run the tests against the service
 
-In a second terminal, in the same virtual environment, run the API tests and the Playwright UI tests, and, once the Robot Framework suite is set up as under "Getting started", that suite too:
+In a second terminal, in the same virtual environment, run the API tests and the Playwright UI tests, and, once `rfbrowser init` has run as under "Run the Robot Framework UI tests", the Robot Framework UI tests too:
 
 ```bash
 . .venv/bin/activate
