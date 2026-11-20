@@ -38,11 +38,7 @@ playwright install --with-deps chromium
 pytest
 ```
 
-The run ends with a line that counts only passed tests, with the number of tests in place of `<n>`:
-
-```
-============================== <n> passed in <seconds>s ==============================
-```
+The run ends with `<n> passed`, where `<n>` is the number of tests, and names no failed test or error.
 
 ### Run the Robot Framework UI tests
 
