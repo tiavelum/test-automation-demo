@@ -18,7 +18,7 @@ The first part runs the API tests and the Playwright UI tests; the second adds t
 
 Requires Git 2 or later, Docker 24 or later with Docker Compose v2, and Python 3.13 with pip.
 
-Get the repository and start the service in a container. The command returns once the service answers its health check. Without Docker, run the first two commands, then follow [Run the service without Docker](#run-the-service-without-docker) instead of the rest of this section, since the tests need a running service:
+Get the repository and start the service in a container. The command returns once the service answers its health check. Without Docker, run the first two commands, then follow [Run the tests without Docker](#run-the-tests-without-docker) instead of the rest of this section, since the tests need a running service:
 
 ```bash
 git clone https://github.com/tiavelum/test-automation-demo.git
@@ -42,7 +42,7 @@ The run ends with:
 ============================== 54 passed in 4.34s ==============================
 ```
 
-### Add the Robot Framework suite
+### Add the Robot Framework suite and run it
 
 Requires Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. In the same virtual environment and with the service running, install the Node.js packages of the Browser library and its browser once, then run the same eight UI cases:
 
@@ -95,7 +95,11 @@ pytest tests/ui --browser-channel chrome
 robot --outputdir test-results/robot --variable CHANNEL:chrome tests/ui
 ```
 
-## Run the service without Docker
+## Run the tests without Docker
+
+Here the service runs directly with Python instead of in a container. It holds its terminal, so the tests run in a second one.
+
+### Start the service
 
 ```bash
 python3.13 -m venv .venv
@@ -105,14 +109,19 @@ playwright install --with-deps chromium
 python app/transfer_app.py
 ```
 
-The service then prints `Uvicorn running on http://127.0.0.1:8000`. In a second terminal, run the tests in the same virtual environment:
+The service then prints `Uvicorn running on http://127.0.0.1:8000`. Stop it with Ctrl+C when the tests are done.
+
+### Run the tests against the service
+
+In a second terminal, in the same virtual environment, run the API tests and the Playwright UI tests, and, once the Robot Framework suite is set up as under "Getting started", that suite too:
 
 ```bash
 . .venv/bin/activate
 pytest
+robot --outputdir test-results/robot tests/ui
 ```
 
-Stop the service with Ctrl+C.
+`pytest` ends with `54 passed` and `robot` with `8 tests, 8 passed, 0 failed`, as with the service in its container.
 
 ## Stop the service in its container
 
