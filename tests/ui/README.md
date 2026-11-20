@@ -1,6 +1,6 @@
 # UI tests
 
-This directory holds the UI tests of the form page of the money-transfer service, for anyone who compares Playwright for Python with the Robot Framework Browser library: `test_transfer_form.py` and `transfer-form.robot` check the same eight cases, under the same names, through the same Playwright release. The root [README](../../README.md#run-the-ui-tests-with-playwright-and-with-robot-framework) gives the commands that run them.
+This directory holds the UI tests of the form page of the money-transfer service, for anyone who compares Playwright for Python with the Robot Framework Browser library: `test_transfer_form.py` and `transfer-form.robot` check the same eight cases, under the same names, through the same Playwright release. The root [README](../../README.md#getting-started) gives the commands that run them.
 
 ## Files
 

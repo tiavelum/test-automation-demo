@@ -12,6 +12,10 @@ It is not a payment system: the service keeps its transfers in memory and has no
 
 ## Getting started
 
+The first part runs the API tests and the Playwright UI tests; the second adds the Robot Framework suite, which needs Node.js besides. Each part ends with a result of its own.
+
+### Run the API tests and the Playwright UI tests
+
 Requires Git 2 or later, Docker 24 or later with Docker Compose v2, and Python 3.13 with pip.
 
 Get the repository and start the service in a container. The command returns once the service answers its health check. Without Docker, run the first two commands, then follow [Run the service without Docker](#run-the-service-without-docker) instead of the rest of this section, since the tests need a running service:
@@ -25,7 +29,7 @@ docker compose up --build --detach --wait
 Install the test dependencies and the browser of Playwright, which on Debian and Ubuntu asks for your password to install the system libraries the browser needs, then run the API tests and the Playwright UI tests against the service at `http://localhost:8000`:
 
 ```bash
-python3 -m venv .venv
+python3.13 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements-dev.txt
 playwright install --with-deps chromium
@@ -37,6 +41,17 @@ The run ends with:
 ```
 ============================== 54 passed in 4.34s ==============================
 ```
+
+### Add the Robot Framework suite
+
+Requires Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. In the same virtual environment and with the service running, install the Node.js packages of the Browser library and its browser once, then run the same eight UI cases:
+
+```bash
+rfbrowser init chromium
+robot --outputdir test-results/robot tests/ui
+```
+
+The run ends with `8 tests, 8 passed, 0 failed` and writes its report to `test-results/robot/report.html` and each keyword step to `log.html` beside it. [tests/ui/README.md](tests/ui/README.md) pairs each case and each keyword with its Playwright counterpart.
 
 ## Example
 
@@ -64,28 +79,15 @@ Each test id starts with its rule and its technique, as [tests/README.md](tests/
 tests/test_confirmation_rules.py::test_confirmation_follows_decision_table[R3-DT-D5-savings-low-single] PASSED
 ```
 
-## Run the UI tests with Playwright and with Robot Framework
+The UI cases carry the same ids. pytest prints them after the browser, such as `[chromium-R1-BVA-lowest-valid-0.01]`, and Robot Framework uses them as test names, so a pattern selects them there, here the six cases of rule R1:
 
 ```bash
-pytest -v tests/ui
+robot --outputdir test-results/robot --test "R1-*" tests/ui
 ```
 
-With the service running (in its container, or started as under "Run the service without Docker"), this runs the eight UI cases with Playwright, one line each, such as:
+## Run the UI tests in an installed Chrome
 
-```
-tests/ui/test_transfer_form.py::test_amount_in_valid_partition_is_accepted[chromium-R1-BVA-lowest-valid-0.01] PASSED
-```
-
-The Robot Framework suite needs Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. Install its Node.js packages and its browser once, then run the same eight cases:
-
-```bash
-rfbrowser init chromium
-robot --outputdir test-results/robot tests/ui
-```
-
-The run ends with `8 tests, 8 passed, 0 failed` and writes its log to `test-results/robot/log.html`. [tests/ui/README.md](tests/ui/README.md) maps each case and each keyword to its Playwright counterpart.
-
-Where Playwright cannot download its browsers, run both suites in an installed Google Chrome instead:
+Where Playwright cannot download its browsers, run both UI suites in an installed Google Chrome instead:
 
 ```bash
 rfbrowser init --skip-browsers
@@ -96,7 +98,7 @@ robot --outputdir test-results/robot --variable CHANNEL:chrome tests/ui
 ## Run the service without Docker
 
 ```bash
-python3 -m venv .venv
+python3.13 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements-dev.txt
 playwright install --with-deps chromium
