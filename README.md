@@ -16,7 +16,9 @@ Start the service in a container, then run the tests against it: the API tests a
 
 Requires Git 2 or later, Docker 24 or later with Docker Compose v2, and Python 3.13 with pip.
 
-**Start the service:** get the repository and start the service in a container. The command returns once the service answers its health check. Without Docker, run the first two commands, then follow [Run the tests without Docker](#run-the-tests-without-docker) instead of the rest of this section, since the tests need a running service:
+### Start the service
+
+Get the repository and start the service in a container. The command returns once the service answers its health check. Without Docker, run the first two commands, then follow [Run the tests without Docker](#run-the-tests-without-docker) instead of the rest of this section, since the tests need a running service:
 
 ```bash
 git clone https://github.com/tiavelum/test-automation-demo.git
@@ -24,7 +26,9 @@ cd test-automation-demo
 docker compose up --build --detach --wait
 ```
 
-**Run the API tests and the Playwright UI tests:** install the test dependencies and the browser of Playwright, which on Debian and Ubuntu asks for your password to install the system libraries the browser needs, then run the API tests and the Playwright UI tests against the service at `http://localhost:8000`:
+### Run the API tests and the Playwright UI tests
+
+Install the test dependencies and the browser of Playwright, which on Debian and Ubuntu asks for your password to install the system libraries the browser needs, then run the API tests and the Playwright UI tests against the service at `http://localhost:8000`:
 
 ```bash
 python3.13 -m venv .venv
@@ -36,7 +40,9 @@ pytest
 
 The run ends with `<n> passed`, where `<n>` is the number of tests, and names no failed test or error.
 
-**Run the Robot Framework UI tests:** these require Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. In the same virtual environment and with the service running, install the Node.js packages of the Browser library and its browser once, then run the same UI cases as with Playwright:
+### Run the Robot Framework UI tests
+
+Requires Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. In the same virtual environment and with the service running, install the Node.js packages of the Browser library and its browser once, then run the same UI cases as with Playwright:
 
 ```bash
 rfbrowser init chromium
