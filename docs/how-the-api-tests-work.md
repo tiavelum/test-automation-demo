@@ -71,25 +71,25 @@ flowchart TB
     direction RL
     UV(["`**uvicorn**
     listens on port 8000
-    transfer_app.py 151–154
+    transfer_app.py 134–137
     ⟨process⟩`"])
     RT(["`**FastAPI app, route table**
     built from the decorators
-    transfer_app.py 59, 90–148
+    transfer_app.py 46, 77–131
     ⟨process⟩`"])
     PD["`**pydantic models**
-    TransferRequest 41–46,
-    ConfirmRequest 49–50`"]
+    TransferRequest 28–33,
+    ConfirmRequest 36–37`"]
     HD["`**Handlers**
-    create_transfer 100–122,
+    create_transfer 87–108,
     confirm, execute,
-    cancel 130–148`"]
+    cancel 116–131`"]
     RL["`**Rule helpers**
-    is_allowed 65–70 (R3),
-    get_transfer 73–76,
-    move 79–87 (R4)`"]
+    is_allowed 52–57 (R3),
+    get_transfer 60–63,
+    move 66–74 (R4)`"]
     DB[("`**transfers**
-    dictionary in memory, 60
+    dictionary in memory, 49
     ⟨process⟩`")]
   end
   end
@@ -144,10 +144,10 @@ sequenceDiagram
   participant T as test function<br/>test_amount_limits.py 17–21
   participant C as create fixture<br/>conftest.py 50–63
   participant S as Api and Session<br/>conftest.py 23–41
-  participant F as uvicorn, FastAPI<br/>transfer_app.py 59, 100
-  participant M as TransferRequest<br/>transfer_app.py 41–46
-  participant H as create_transfer<br/>transfer_app.py 101–122
-  participant D as transfers<br/>transfer_app.py 60
+  participant F as uvicorn, FastAPI<br/>transfer_app.py 46, 87
+  participant M as TransferRequest<br/>transfer_app.py 28–33
+  participant H as create_transfer<br/>transfer_app.py 88–108
+  participant D as transfers<br/>transfer_app.py 49
   end
 
   rect rgb(255, 255, 255)
@@ -363,7 +363,7 @@ Six hand-overs of a test case work only because both sides spell a name the same
 |---|---|---|---|---|
 | ① pytest → test, step 4 | `def test_…(create, amount)`, `test_amount_limits.py:17` | parameter name = fixture or `parametrize` name | `def create(…)`, `conftest.py:51`; `parametrize("amount", …)`, `test_amount_limits.py:10` | The test errors at setup: `fixture 'creat' not found`. A `parametrize` name the test lacks fails collection, `function uses no argument 'amount'`, and pytest runs no test at all |
 | ② test → create, step 5 | `create(amount=amount)`, `test_amount_limits.py:18` | keyword = parameter name | `def create(amount=…, account_type=…, account_id=None)`, `conftest.py:54` | The test fails with `TypeError: … got an unexpected keyword argument 'amonut'` |
-| ③ create → route, steps 9–10 | `session.post(BASE_URL + "/transfers")`, `conftest.py:61` and `31` | method and path = a route | `@app.post("/transfers")`, `transfer_app.py:100` | Status 404 or 405; the test fails on its status assertion, or with a `KeyError` where it reads the body first |
-| ④ JSON body → model, step 11 | keys `account`, `recipient`, `account_type`, `amount`, `conftest.py:55–60` | JSON key = field name | fields of `TransferRequest`, `transfer_app.py:41–46` | Status 422 with `"type": "missing"`; a key the model does not know is ignored without an error |
-| ⑤ model → handler, step 15 | `class TransferRequest`, `transfer_app.py:41` | annotation = class | `def create_transfer(request: TransferRequest)`, `transfer_app.py:101` | Without the annotation, FastAPI reads `request` as a query parameter and answers 422 for every body |
-| ⑥ response → test, steps 21–24 | fields of `Transfer`: `id`, `status`, …, `transfer_app.py:53–56` | JSON key = field name | `response.json()["status"]`, `test_amount_limits.py:19–21` | The test fails with `KeyError` |
+| ③ create → route, steps 9–10 | `session.post(BASE_URL + "/transfers")`, `conftest.py:61` and `31` | method and path = a route | `@app.post("/transfers")`, `transfer_app.py:87` | Status 404 or 405; the test fails on its status assertion, or with a `KeyError` where it reads the body first |
+| ④ JSON body → model, step 11 | keys `account`, `recipient`, `account_type`, `amount`, `conftest.py:55–60` | JSON key = field name | fields of `TransferRequest`, `transfer_app.py:28–33` | Status 422 with `"type": "missing"`; a key the model does not know is ignored without an error |
+| ⑤ model → handler, step 15 | `class TransferRequest`, `transfer_app.py:28` | annotation = class | `async def create_transfer(request: TransferRequest)`, `transfer_app.py:88` | Without the annotation, FastAPI reads `request` as a query parameter and answers 422 for every body |
+| ⑥ response → test, steps 21–24 | fields of `Transfer`: `id`, `status`, …, `transfer_app.py:40–43` | JSON key = field name | `response.json()["status"]`, `test_amount_limits.py:19–21` | The test fails with `KeyError` |

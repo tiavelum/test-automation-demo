@@ -5,13 +5,11 @@ the comments below (R1 to R4) refer to that document.
 """
 
 import os
-import threading
 import uuid
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from enum import StrEnum
 from pathlib import Path
-from typing import Annotated
+from typing import Literal
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -24,26 +22,15 @@ DAILY_LIMIT = Decimal("20000.00")
 SECOND_CONFIRMATION_THRESHOLD = Decimal("5000.00")
 FORM_PAGE = Path(__file__).with_name("transfer-form.html")
 
-
-class AccountType(StrEnum):
-    PRIVATE = "private"
-    SAVINGS = "savings"
-
-
-class Status(StrEnum):
-    CREATED = "created"
-    CONFIRMED = "confirmed"
-    EXECUTED = "executed"
-    CANCELLED = "cancelled"
-    REJECTED = "rejected"
+Status = Literal["created", "confirmed", "executed", "cancelled", "rejected"]
 
 
 class TransferRequest(BaseModel):
-    account: Annotated[str, Field(min_length=1)]
-    recipient: Annotated[str, Field(min_length=1)]
-    account_type: AccountType
+    account: str = Field(min_length=1)
+    recipient: str = Field(min_length=1)
+    account_type: Literal["private", "savings"]
     # R1: the amount range per transfer, in CHF with at most two decimal places.
-    amount: Annotated[Decimal, Field(ge=MIN_AMOUNT, le=MAX_AMOUNT, decimal_places=2)]
+    amount: Decimal = Field(ge=MIN_AMOUNT, le=MAX_AMOUNT, decimal_places=2)
 
 
 class ConfirmRequest(BaseModel):
@@ -57,15 +44,15 @@ class Transfer(TransferRequest):
 
 
 app = FastAPI(title="Money transfer")
+# The handlers are async and never wait, so they run one at a time on the event loop and
+# no two requests change `transfers` at once.
 transfers: dict[str, Transfer] = {}
-# Request handlers run in a thread pool, so every read-modify-write of `transfers` holds it.
-lock = threading.Lock()
 
 
 def is_allowed(transfer: Transfer, second_confirmation: bool) -> bool:
     """R3: whether a confirmation is accepted, as the decision table states it."""
     within_threshold = transfer.amount <= SECOND_CONFIRMATION_THRESHOLD
-    if transfer.account_type is AccountType.SAVINGS:
+    if transfer.account_type == "savings":
         return within_threshold and second_confirmation
     return within_threshold or second_confirmation
 
@@ -88,64 +75,60 @@ def move(transfer_id: str, allowed_from: set[Status], target: Status) -> Transfe
 
 
 @app.get("/", include_in_schema=False)
-def form_page() -> FileResponse:
+async def form_page() -> FileResponse:
     return FileResponse(FORM_PAGE)
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.post("/transfers", status_code=201)
-def create_transfer(request: TransferRequest) -> Transfer:
+async def create_transfer(request: TransferRequest) -> Transfer:
     today = datetime.now(UTC).date()
-    with lock:
-        # R2: the daily limit counts every transfer of the account created today that is
-        # neither cancelled nor rejected.
-        used = sum(
-            (
-                t.amount
-                for t in transfers.values()
-                if t.account == request.account
-                and t.created_on == today
-                and t.status not in {Status.CANCELLED, Status.REJECTED}
-            ),
-            Decimal("0"),
-        )
-        if used + request.amount > DAILY_LIMIT:
-            raise HTTPException(status_code=422, detail="daily limit exceeded")
-        transfer = Transfer(
-            **request.model_dump(), id=uuid.uuid4().hex, status=Status.CREATED, created_on=today
-        )
-        transfers[transfer.id] = transfer
+    # R2: the daily limit counts every transfer of the account created today that is
+    # neither cancelled nor rejected.
+    used = sum(
+        (
+            t.amount
+            for t in transfers.values()
+            if t.account == request.account
+            and t.created_on == today
+            and t.status not in {"cancelled", "rejected"}
+        ),
+        Decimal("0"),
+    )
+    if used + request.amount > DAILY_LIMIT:
+        raise HTTPException(status_code=422, detail="daily limit exceeded")
+    transfer = Transfer(
+        **request.model_dump(), id=uuid.uuid4().hex, status="created", created_on=today
+    )
+    transfers[transfer.id] = transfer
     return transfer
 
 
 @app.get("/transfers/{transfer_id}")
-def read_transfer(transfer_id: str) -> Transfer:
+async def read_transfer(transfer_id: str) -> Transfer:
     return get_transfer(transfer_id)
 
 
 @app.post("/transfers/{transfer_id}/confirm")
-def confirm_transfer(transfer_id: str, request: ConfirmRequest | None = None) -> Transfer:
+async def confirm_transfer(transfer_id: str, request: ConfirmRequest | None = None) -> Transfer:
     second_confirmation = request.second_confirmation if request else False
-    with lock:
-        transfer = get_transfer(transfer_id)
-        target = Status.CONFIRMED if is_allowed(transfer, second_confirmation) else Status.REJECTED
-        return move(transfer_id, {Status.CREATED}, target)
+    transfer = get_transfer(transfer_id)
+    target = "confirmed" if is_allowed(transfer, second_confirmation) else "rejected"
+    return move(transfer_id, {"created"}, target)
 
 
 @app.post("/transfers/{transfer_id}/execute")
-def execute_transfer(transfer_id: str) -> Transfer:
-    with lock:
-        return move(transfer_id, {Status.CONFIRMED}, Status.EXECUTED)
+async def execute_transfer(transfer_id: str) -> Transfer:
+    return move(transfer_id, {"confirmed"}, "executed")
 
 
 @app.post("/transfers/{transfer_id}/cancel")
-def cancel_transfer(transfer_id: str) -> Transfer:
-    with lock:
-        return move(transfer_id, {Status.CREATED, Status.CONFIRMED}, Status.CANCELLED)
+async def cancel_transfer(transfer_id: str) -> Transfer:
+    return move(transfer_id, {"created", "confirmed"}, "cancelled")
 
 
 if __name__ == "__main__":
