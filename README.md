@@ -38,22 +38,22 @@ playwright install --with-deps chromium
 pytest
 ```
 
-The run ends with:
+The run ends with a line that counts only passed tests, with the number of tests in place of `<n>`:
 
 ```
-============================== 54 passed in 4.34s ==============================
+============================== <n> passed in <seconds>s ==============================
 ```
 
 ### Run the Robot Framework UI tests
 
-Requires Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. In the same virtual environment and with the service running, install the Node.js packages of the Browser library and its browser once, then run the same eight UI cases:
+Requires Node.js 22, 24 or 26, the versions that the [Browser library 21.0.0 supports](https://pypi.org/project/robotframework-browser/21.0.0/), since it drives Playwright from a Node.js process. In the same virtual environment and with the service running, install the Node.js packages of the Browser library and its browser once, then run the same UI cases as with Playwright:
 
 ```bash
 rfbrowser init chromium
 robot --outputdir test-results/robot tests/ui
 ```
 
-The run ends with `8 tests, 8 passed, 0 failed` and writes its report to `test-results/robot/report.html` and each keyword step to `log.html` beside it. [tests/ui/README.md](tests/ui/README.md) pairs each case and each keyword with its Playwright counterpart.
+The run ends with `<n> tests, <n> passed, 0 failed` and writes its report to `test-results/robot/report.html` and each keyword step to `log.html` beside it. [tests/ui/README.md](tests/ui/README.md) pairs each case and each keyword with its Playwright counterpart.
 
 ## Example
 
@@ -81,7 +81,7 @@ Each test id starts with its rule and its technique, as [tests/README.md](tests/
 tests/test_confirmation_rules.py::test_confirmation_follows_decision_table[R3-DT-D5-savings-low-single] PASSED
 ```
 
-The UI cases carry the same ids. pytest prints them after the browser, such as `[chromium-R1-BVA-lowest-valid-0.01]`, and Robot Framework uses them as test names, so a pattern selects them there, here the six cases of rule R1:
+The UI cases carry the same ids. pytest prints them after the browser, such as `[chromium-R1-BVA-lowest-valid-0.01]`, and Robot Framework uses them as test names, so a pattern selects them there, here the cases of rule R1:
 
 ```bash
 robot --outputdir test-results/robot --test "R1-*" tests/ui
@@ -123,7 +123,7 @@ pytest
 robot --outputdir test-results/robot tests/ui
 ```
 
-`pytest` ends with `54 passed` and `robot` with `8 tests, 8 passed, 0 failed`, as with the service in its container.
+Both runs end as under "Getting started", with every test passed.
 
 ## Stop the service in its container
 
