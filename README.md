@@ -125,9 +125,9 @@ Here the service runs directly with Python instead of in a container. It holds i
 docker compose down
 ```
 
-## Check a change before a pull request
+## Run the checks CI runs
 
-With the service running, run the checks that CI runs; each exits with status 0 when the change passes:
+CI runs these checks on every pull request and decides whether a change passes them. While you make a change pass, run those that cover what you changed, with the service running; each exits with status 0 when the change passes:
 
 ```bash
 ruff format --check .
