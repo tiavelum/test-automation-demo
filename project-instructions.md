@@ -4,7 +4,7 @@ These are the rules for a Claude session that works on this public test automati
 
 Public content: Never add personal data of the owner or of anyone else to a file, a commit, an issue or a pull request: no names, addresses, employers or details of job applications. The one exception is the owner's name in the copyright line of `LICENSE`, which WR-6 of tiavelum/engineering-standards asks for.
 
-Rules before tests: A change to what the service does changes `docs/business-rules.md` in the same pull request. Every new test names the rule and the technique it is derived from in its id or docstring, in the form `tests/README.md` describes, and uses an account of its own: the `account` fixture in pytest, the account that `Submit A Transfer` makes in Robot Framework. A pull request that adds or removes a test changes `EXPECTED_TESTS` of its job in `.github/workflows/ci.yml` to match.
+Rules before tests: A change to what the service does changes `docs/business-rules.md` in the same pull request. Every new test names the rule and the technique it is derived from in its id or docstring, in the form `tests/README.md` describes, and uses an account of its own: the `account` fixture in pytest, the account that `Submit A Transfer` makes in Robot Framework.
 
 Small service: Keep the service in the single module `app/transfer_app.py`. A second module would bring the layers, diagram and checks of the module-layers standard of tiavelum/engineering-standards.
 
