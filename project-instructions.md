@@ -9,14 +9,3 @@ Rules before tests: A change to what the service does changes `docs/business-rul
 Small service: Keep the service in the single module `app/transfer_app.py`. A second module would bring the layers, diagram and checks of the module-layers standard of tiavelum/engineering-standards.
 
 Pinned dependencies: Pin a new dependency together with every transitive dependency it installs, in `app/requirements.txt` for the service and in `requirements-dev.txt` for the tests and the checks.
-
-Done: A change is ready when the following pass with the service running, and then the CI run on its pull request. Where Docker is not available, start the service with `python app/transfer_app.py` and report that only CI built and started the container. Where Playwright cannot download its browsers, use an installed Chrome as README.md shows.
-
-```bash
-ruff format --check .
-ruff check .
-robocop format --check .
-robocop check .
-pytest
-robot --outputdir test-results/robot tests/ui
-```
